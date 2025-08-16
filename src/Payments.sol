@@ -57,6 +57,8 @@ interface IERC3009 {
         bytes32 r,
         bytes32 s
     ) external;
+
+    function authorizationState(address user, bytes32 nonce) external view returns (bool used);
 }
 
 // @title Payments contract.
@@ -262,8 +264,8 @@ contract Payments is ReentrancyGuard {
         _;
     }
 
-    modifier validatePermitRecipient(address to) {
-        require(to == msg.sender, Errors.PermitRecipientMustBeMsgSender(msg.sender, to));
+    modifier validateSignerIsRecipient(address to) {
+        require(to == msg.sender, Errors.SignerMustBeMsgSender(msg.sender, to));
         _;
     }
 
@@ -531,7 +533,12 @@ contract Payments is ReentrancyGuard {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external nonReentrant validateNonZeroAddress(to, "to") settleAccountLockupBeforeAndAfter(token, to, false) {
+    )
+        external
+        nonReentrant
+        validateNonZeroAddress(to, "to")
+        settleAccountLockupBeforeAndAfter(token, to, false)
+    {
         _depositWithPermit(token, to, amount, deadline, v, r, s);
     }
 
@@ -600,7 +607,7 @@ contract Payments is ReentrancyGuard {
         nonReentrant
         validateNonZeroAddress(operator, "operator")
         validateNonZeroAddress(to, "to")
-        validatePermitRecipient(to)
+        validateSignerIsRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
         _setOperatorApproval(token, operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
@@ -637,7 +644,7 @@ contract Payments is ReentrancyGuard {
         nonReentrant
         validateNonZeroAddress(operator, "operator")
         validateNonZeroAddress(to, "to")
-        validatePermitRecipient(to)
+        validateSignerIsRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
         _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
@@ -648,7 +655,6 @@ contract Payments is ReentrancyGuard {
      * @notice Deposits tokens using an ERC-3009 authorization in a single transaction.
      * @dev This allows a third party to submit a pre-signed transfer authorization to deposit tokens on behalf of a user.
      * @param token The ERC-20 token address to deposit. Must conform to ERC-3009.
-     * @param from The address authorizing the transfer (the owner of the funds).
      * @param to The address whose account within the contract will be credited.
      * @param amount The amount of tokens to deposit.
      * @param validAfter The timestamp after which the authorization is valid.
@@ -658,7 +664,6 @@ contract Payments is ReentrancyGuard {
      */
     function depositWithAuthorization(
         address token,
-        address from,
         address to,
         uint256 amount,
         uint256 validAfter,
@@ -670,16 +675,15 @@ contract Payments is ReentrancyGuard {
     )
         external
         nonReentrant
-        validateNonZeroAddress(from, "from")
         validateNonZeroAddress(to, "to")
+        validateSignerIsRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
-        _depositWithAuthorization(token, from, to, amount, validAfter, validBefore, nonce, v, r, s);
+        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 
     function _depositWithAuthorization(
         address token,
-        address from,
         address to,
         uint256 amount,
         uint256 validAfter,
@@ -696,9 +700,9 @@ contract Payments is ReentrancyGuard {
         uint256 balanceBefore = IERC20(token).balanceOf(address(this));
 
         // Call ERC-3009 transferWithAuthorization.
-        // This will transfer 'amount' from 'from' to this contract.
+        // This will transfer 'amount' from 'to' to this contract.
         // The token contract itself verifies the signature.
-        IERC3009(token).transferWithAuthorization(from, address(this), amount, validAfter, validBefore, nonce, v, r, s);
+        IERC3009(token).transferWithAuthorization(to, address(this), amount, validAfter, validBefore, nonce, v, r, s);
 
         uint256 balanceAfter = IERC20(token).balanceOf(address(this));
         uint256 actualAmount = balanceAfter - balanceBefore;
@@ -708,7 +712,7 @@ contract Payments is ReentrancyGuard {
         account.funds += actualAmount;
 
         // Emit an event to record the deposit, marking it as made via an off-chain signature.
-        emit DepositRecorded(token, from, to, actualAmount, AuthType.Authorization, nonce);
+        emit DepositRecorded(token, to, to, actualAmount, AuthType.Authorization, nonce);
     }
 
     /// @notice Withdraws tokens from the caller's account to the caller's account, up to the amount of currently available tokens (the tokens not currently locked in rails).
