@@ -893,4 +893,84 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
     }
+
+    function depositWithAuthorizationAndOperatorApproval(
+        uint256 fromPrivateKey,
+        uint256 amount,
+        uint256 validForSeconds,
+        address operator,
+        uint256 rateAllowance,
+        uint256 lockupAllowance,
+        uint256 maxLockupPeriod
+    ) public returns (bytes32 nonce) {
+        address from = vm.addr(fromPrivateKey);
+        address to = from;
+
+        // Windows
+        uint256 validAfter = 0; // valid immediately
+        uint256 validBefore = block.timestamp + validForSeconds;
+
+        // Unique nonce
+        nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
+
+        // Pre-state capture
+        uint256 fromBalanceBefore = _balanceOf(from, false);
+        uint256 paymentsBalanceBefore = _balanceOf(address(payments), false);
+        Payments.Account memory toAccountBefore = _getAccountData(to, false);
+
+        // Build signature
+        (uint8 v, bytes32 r, bytes32 s) = getTransferWithAuthorizationSignature(
+            fromPrivateKey,
+            address(testToken),
+            from,
+            address(payments), // pay to Payments contract
+            amount,
+            validAfter,
+            validBefore,
+            nonce
+        );
+
+        // Execute deposit via authorization
+        vm.startPrank(from);
+
+        payments.depositWithAuthorizationAndApproveOperator(
+            address(testToken),
+            to,
+            amount,
+            validAfter,
+            validBefore,
+            nonce,
+            v,
+            r,
+            s,
+            operator,
+            rateAllowance,
+            lockupAllowance,
+            maxLockupPeriod
+        );
+
+        vm.stopPrank();
+
+        // Post-state capture
+        uint256 fromBalanceAfter = _balanceOf(from, false);
+        uint256 paymentsBalanceAfter = _balanceOf(address(payments), false);
+        Payments.Account memory toAccountAfter = _getAccountData(from, false);
+
+        // Assertions
+        _assertDepositBalances(
+            fromBalanceBefore,
+            fromBalanceAfter,
+            paymentsBalanceBefore,
+            paymentsBalanceAfter,
+            toAccountBefore,
+            toAccountAfter,
+            amount
+        );
+
+        // Verify authorization is consumed on the token
+        bool used = IERC3009(address(testToken)).authorizationState(from, nonce);
+        assertTrue(used);
+
+        verifyOperatorAllowances(from, operator, true, rateAllowance, lockupAllowance, 0, 0, maxLockupPeriod);
+    }
 }
