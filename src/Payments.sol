@@ -653,7 +653,6 @@ contract Payments is ReentrancyGuard {
 
     /**
      * @notice Deposits tokens using an ERC-3009 authorization in a single transaction.
-     * @dev This allows a third party to submit a pre-signed transfer authorization to deposit tokens on behalf of a user.
      * @param token The ERC-20 token address to deposit. Must conform to ERC-3009.
      * @param to The address whose account within the contract will be credited.
      * @param amount The amount of tokens to deposit.
@@ -679,6 +678,92 @@ contract Payments is ReentrancyGuard {
         validateSignerIsRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
+        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
+    }
+
+    /**
+     * @notice Deposits tokens using an ERC-3009 authorization in a single transaction.
+     *         while also setting operator approval.
+     * @param token The ERC-20 token address to deposit. Must conform to ERC-3009.
+     * @param to The address whose account within the contract will be credited.
+     * @param amount The amount of tokens to deposit.
+     * @param validAfter The timestamp after which the authorization is valid.
+     * @param validBefore The timestamp before which the authorization is valid.
+     * @param nonce A unique nonce for the authorization, used to prevent replay attacks.
+     * @param v,r,s The signature of the authorization.
+     * @param operator The address of the operator whose approval is being modified.
+     * @param rateAllowance The maximum payment rate the operator can set across all rails created by the operator
+     *             on behalf of the message sender. If this is less than the current payment rate, the operator will
+     *             only be able to reduce rates until they fall below the target.
+     * @param lockupAllowance The maximum amount of funds the operator can lock up on behalf of the message sender
+     *             towards future payments. If this exceeds the current total amount of funds locked towards future payments,
+     *             the operator will only be able to reduce future lockup.
+     * @param maxLockupPeriod The maximum number of epochs (blocks) the operator can lock funds for. If this is less than
+     *             the current lockup period for a rail, the operator will only be able to reduce the lockup period.
+     */
+    function depositWithAuthorizationAndApproveOperator(
+        address token,
+        address to,
+        uint256 amount,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        address operator,
+        uint256 rateAllowance,
+        uint256 lockupAllowance,
+        uint256 maxLockupPeriod
+    )
+        external
+        nonReentrant
+        validateNonZeroAddress(operator, "operator")
+        validateNonZeroAddress(to, "to")
+        validateSignerIsRecipient(to)
+        settleAccountLockupBeforeAndAfter(token, to, false)
+    {
+        _setOperatorApproval(token, operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
+        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
+    }
+
+    /**
+     * @notice Deposits tokens using an ERC-3009 authorization in a single transaction.
+     *         while also setting operator approval.
+     * @param token The ERC-20 token address to deposit. Must conform to ERC-3009.
+     * @param to The address whose account within the contract will be credited.
+     * @param amount The amount of tokens to deposit.
+     * @param validAfter The timestamp after which the authorization is valid.
+     * @param validBefore The timestamp before which the authorization is valid.
+     * @param nonce A unique nonce for the authorization, used to prevent replay attacks.
+     * @param v,r,s The signature of the authorization.
+     * @param operator The address of the operator whose allowances are being increased.
+     * @param rateAllowanceIncrease The amount to increase the rate allowance by.
+     * @param lockupAllowanceIncrease The amount to increase the lockup allowance by.
+     * @custom:constraint Operator must already be approved.
+     */
+    function depositWithAuthorizationAndIncreaseOperatorApproval(
+        address token,
+        address to,
+        uint256 amount,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        address operator,
+        uint256 rateAllowanceIncrease,
+        uint256 lockupAllowanceIncrease
+    )
+        external
+        nonReentrant
+        validateNonZeroAddress(operator, "operator")
+        validateNonZeroAddress(to, "to")
+        validateSignerIsRecipient(to)
+        settleAccountLockupBeforeAndAfter(token, to, false)
+    {
+        _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
         _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 
