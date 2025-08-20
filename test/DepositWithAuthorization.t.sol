@@ -50,11 +50,11 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         Payments.Account memory toAccountBefore = helper._getAccountData(to, false);
 
         // Build signature
-        (uint8 v, bytes32 r, bytes32 s) = helper.getTransferWithAuthorizationSignature(
+        (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
             fromPrivateKey,
             address(testToken),
             from,
-            address(payments), // pay to Payments contract which will credit 'to'
+            address(payments), // receiveWithAuthorization pays to Payments contract
             amount,
             validAfter,
             validBefore,
@@ -100,7 +100,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         uint256 validBefore = block.timestamp + validForSeconds;
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
-        (uint8 v, bytes32 r, bytes32 s) = helper.getTransferWithAuthorizationSignature(
+        (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
             fromPrivateKey, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
         );
 
@@ -121,12 +121,12 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
         // Generate signature with a different private key
-        (uint8 v, bytes32 r, bytes32 s) = helper.getTransferWithAuthorizationSignature(
+        (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
             user2Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         vm.startPrank(from);
-        vm.expectRevert("Invalid signature");
+        vm.expectRevert("EIP3009: invalid signature");
         payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
     }
@@ -139,7 +139,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         uint256 validBefore = block.timestamp + 60;
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
-        (uint8 v, bytes32 r, bytes32 s) = helper.getTransferWithAuthorizationSignature(
+        (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
             user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
         );
 
@@ -147,7 +147,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         r = bytes32(uint256(r) ^ 1);
 
         vm.startPrank(from);
-        vm.expectRevert("ECDSAInvalidSignature()"); // invalid signature should revert
+        vm.expectRevert("EIP3009: invalid signature"); // invalid signature should revert
         payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
     }
@@ -160,7 +160,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         uint256 validBefore = block.timestamp + 1;
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
-        (uint8 v, bytes32 r, bytes32 s) = helper.getTransferWithAuthorizationSignature(
+        (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
             user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
         );
 
@@ -186,7 +186,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         uint256 paymentsBalanceBefore = helper._balanceOf(address(payments), false);
         Payments.Account memory toAccountBefore = helper._getAccountData(to, false);
 
-        (uint8 v, bytes32 r, bytes32 s) = helper.getTransferWithAuthorizationSignature(
+        (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
             user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
         );
 
@@ -228,7 +228,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         uint256 validBefore = block.timestamp + 300;
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
-        (uint8 v, bytes32 r, bytes32 s) = helper.getTransferWithAuthorizationSignature(
+        (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
             user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
         );
 
@@ -256,12 +256,12 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         MockERC20 otherToken = new MockERC20("OtherToken", "OTK");
 
         // Sign against otherToken domain
-        (uint8 v, bytes32 r, bytes32 s) = helper.getTransferWithAuthorizationSignature(
+        (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
             user1Sk, address(otherToken), from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         vm.startPrank(from);
-        vm.expectRevert("Invalid signature"); // domain mismatch
+        vm.expectRevert("EIP3009: invalid signature"); // domain mismatch
         payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
     }

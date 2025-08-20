@@ -849,7 +849,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         vm.stopPrank();
     }
 
-    function getTransferWithAuthorizationSignature(
+    function getReceiveWithAuthorizationSignature(
         uint256 privateKey,
         address token,
         address from,
@@ -859,12 +859,12 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         uint256 validBefore,
         bytes32 nonce
     ) public view returns (uint8 v, bytes32 r, bytes32 s) {
-        // EIP-712 domain
-        bytes32 DOMAIN_SEPARATOR = MockERC20(address(token)).DOMAIN_SEPARATOR();
+        // EIP-712 domain for ERC-3009 (MockERC20 defines its own domainSeparator unrelated to ERC2612)
+        bytes32 DOMAIN_SEPARATOR = MockERC20(address(token)).domainSeparator();
 
-        // keccak256("TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)")
+        // keccak256("ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)")
         bytes32 TYPEHASH = keccak256(
-            "TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
+            "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
         ); // as per EIP-3009
 
         bytes32 structHash = keccak256(abi.encode(TYPEHASH, from, to, value, validAfter, validBefore, nonce));
@@ -882,11 +882,12 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         uint256 amount = INITIAL_BALANCE + 1;
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
-        (uint8 v, bytes32 r, bytes32 s) = getTransferWithAuthorizationSignature(
+        (uint8 v, bytes32 r, bytes32 s) = getReceiveWithAuthorizationSignature(
             fromPrivateKey, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         vm.startPrank(from);
+        // Since signature is valid but balance is insufficient, MockERC20 will revert with ERC20InsufficientBalance
         vm.expectRevert(
             abi.encodeWithSignature("ERC20InsufficientBalance(address,uint256,uint256)", from, INITIAL_BALANCE, amount)
         );
@@ -919,7 +920,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         Payments.Account memory toAccountBefore = _getAccountData(to, false);
 
         // Build signature
-        (uint8 v, bytes32 r, bytes32 s) = getTransferWithAuthorizationSignature(
+        (uint8 v, bytes32 r, bytes32 s) = getReceiveWithAuthorizationSignature(
             fromPrivateKey,
             address(testToken),
             from,

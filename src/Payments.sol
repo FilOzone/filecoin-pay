@@ -35,7 +35,9 @@ interface IValidator {
 
 interface IERC3009 {
     /**
-     * @notice Execute a transfer with a signed authorization
+     * @notice Receive a transfer with a signed authorization from the payer
+     * @dev This has an additional check to ensure that the payee's address matches
+     * the caller of this function to prevent front-running attacks.
      * @param from          Payer's address (Authorizer)
      * @param to            Payee's address
      * @param value         Amount to be transferred
@@ -46,7 +48,7 @@ interface IERC3009 {
      * @param r             r of the signature
      * @param s             s of the signature
      */
-    function transferWithAuthorization(
+    function receiveWithAuthorization(
         address from,
         address to,
         uint256 value,
@@ -787,7 +789,7 @@ contract Payments is ReentrancyGuard {
         // Call ERC-3009 transferWithAuthorization.
         // This will transfer 'amount' from 'to' to this contract.
         // The token contract itself verifies the signature.
-        IERC3009(token).transferWithAuthorization(to, address(this), amount, validAfter, validBefore, nonce, v, r, s);
+        IERC3009(token).receiveWithAuthorization(to, address(this), amount, validAfter, validBefore, nonce, v, r, s);
 
         uint256 balanceAfter = IERC20(token).balanceOf(address(this));
         uint256 actualAmount = balanceAfter - balanceBefore;
