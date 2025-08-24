@@ -74,12 +74,6 @@ contract Payments is ReentrancyGuard {
     uint256 public constant NETWORK_FEE = 1300000 gwei; // equivalent to 130000 nFIL
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
 
-    enum AuthType {
-        None,
-        Permit,
-        Authorization
-    }
-
     // Events
     event AccountLockupSettled(
         address indexed token,
@@ -127,14 +121,7 @@ contract Payments is ReentrancyGuard {
     event RailTerminated(uint256 indexed railId, address indexed by, uint256 endEpoch);
     event RailFinalized(uint256 indexed railId);
 
-    event DepositRecorded(
-        address indexed token,
-        address indexed from,
-        address indexed to,
-        uint256 amount,
-        AuthType authType,
-        bytes32 nonce
-    );
+    event DepositRecorded(address indexed token, address indexed from, address indexed to, uint256 amount);
     event WithdrawRecorded(address indexed token, address indexed from, address indexed to, uint256 amount);
 
     struct Account {
@@ -516,7 +503,7 @@ contract Payments is ReentrancyGuard {
 
         account.funds += actualAmount;
 
-        emit DepositRecorded(token, msg.sender, to, actualAmount, AuthType.None, bytes32(0));
+        emit DepositRecorded(token, msg.sender, to, actualAmount);
     }
 
     /**
@@ -570,7 +557,7 @@ contract Payments is ReentrancyGuard {
 
         account.funds += actualAmount;
 
-        emit DepositRecorded(token, to, to, actualAmount, AuthType.Permit, bytes32(0));
+        emit DepositRecorded(token, to, to, actualAmount);
     }
 
     /**
@@ -799,7 +786,7 @@ contract Payments is ReentrancyGuard {
         account.funds += actualAmount;
 
         // Emit an event to record the deposit, marking it as made via an off-chain signature.
-        emit DepositRecorded(token, to, to, actualAmount, AuthType.Authorization, nonce);
+        emit DepositRecorded(token, to, to, actualAmount);
     }
 
     /// @notice Withdraws tokens from the caller's account to the caller's account, up to the amount of currently available tokens (the tokens not currently locked in rails).
