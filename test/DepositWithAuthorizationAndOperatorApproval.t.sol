@@ -100,7 +100,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         r = bytes32(uint256(r) ^ 1);
 
         vm.startPrank(from);
-        vm.expectRevert("EIP3009: invalid signature"); // invalid signature should revert
+        vm.expectRevert("EIP712: invalid signature"); // invalid signature should revert
         payments.depositWithAuthorizationAndApproveOperator(
             address(testToken),
             to,
