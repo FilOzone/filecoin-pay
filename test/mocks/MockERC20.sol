@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /**
  * @title MockERC20
@@ -19,7 +19,7 @@ contract MockERC20 is ERC20Permit {
         "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
     );
 
-    bytes32 private _HASHED_NAME = keccak256("USD for Filecoin");
+    bytes32 private _HASHED_NAME;
     bytes32 private _HASHED_VERSION = keccak256("1");
 
     // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
@@ -27,13 +27,17 @@ contract MockERC20 is ERC20Permit {
     // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
     bytes32 private constant _TYPE_HASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
 
-    uint256 private _CACHED_CHAIN_ID = _chainID();
-    bytes32 private _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION);
+    uint256 private _CACHED_CHAIN_ID;
+    bytes32 private _CACHED_DOMAIN_SEPARATOR;
 
     // --- ERC-3009 Event ---
     event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce);
 
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) ERC20Permit(name) {}
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) ERC20Permit(name) {
+        _HASHED_NAME = keccak256(abi.encode(name));
+        _CACHED_CHAIN_ID = block.chainid;
+        _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION);
+    }
 
     // Mint tokens for testing
     function mint(address to, uint256 amount) public {
@@ -73,7 +77,7 @@ contract MockERC20 is ERC20Permit {
             abi.encode(_TRANSFER_WITH_AUTHORIZATION_TYPEHASH, from, to, value, validAfter, validBefore, nonce)
         );
 
-        bytes32 digest = EIP712._hashTypedDataV4(structHash);
+        bytes32 digest = _hashTypedDataV4(structHash);
         address signer = ECDSA.recover(digest, v, r, s);
         require(signer == from, "Invalid signature");
 
@@ -152,20 +156,14 @@ contract MockERC20 is ERC20Permit {
     }
 
     function domainSeparator() public view returns (bytes32) {
-        if (_chainID() == _CACHED_CHAIN_ID) {
+        if (block.chainid == _CACHED_CHAIN_ID) {
             return _CACHED_DOMAIN_SEPARATOR;
         } else {
             return _buildDomainSeparator(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION);
         }
     }
 
-    function _chainID() private view returns (uint256 chainID) {
-        assembly {
-            chainID := chainid()
-        }
-    }
-
     function _buildDomainSeparator(bytes32 _typeHash, bytes32 _name, bytes32 _version) private view returns (bytes32) {
-        return keccak256(abi.encode(_typeHash, _name, _version, _chainID(), address(this)));
+        return keccak256(abi.encode(_typeHash, _name, _version, block.chainid, address(this)));
     }
 }
