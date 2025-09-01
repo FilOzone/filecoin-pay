@@ -225,11 +225,6 @@ contract Payments is ReentrancyGuard {
         _;
     }
 
-    modifier validatePermitRecipient(address to) {
-        require(to == msg.sender, Errors.PermitRecipientMustBeMsgSender(msg.sender, to));
-        _;
-    }
-
     modifier settleAccountLockupBeforeAndAfter(address token, address owner, bool settleFull) {
         Account storage payer = accounts[token][owner];
 
@@ -498,7 +493,6 @@ contract Payments is ReentrancyGuard {
         external
         nonReentrant
         validateNonZeroAddress(to, "to")
-        validatePermitRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
         _depositWithPermit(token, to, amount, deadline, v, r, s);
@@ -569,7 +563,6 @@ contract Payments is ReentrancyGuard {
         nonReentrant
         validateNonZeroAddress(operator, "operator")
         validateNonZeroAddress(to, "to")
-        validatePermitRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
         _setOperatorApproval(token, operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
@@ -606,7 +599,6 @@ contract Payments is ReentrancyGuard {
         nonReentrant
         validateNonZeroAddress(operator, "operator")
         validateNonZeroAddress(to, "to")
-        validatePermitRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
         _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
