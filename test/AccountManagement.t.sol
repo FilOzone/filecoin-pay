@@ -70,8 +70,8 @@ contract AccountManagementTest is Test, BaseTestHelper {
         helper.expectInvalidPermitToRevert(user1Sk, USER1, DEPOSIT_AMOUNT);
     }
 
-    function testDepositWithPermitToAnotherUserReverts() public {
-        helper.expectDepositWithPermitToAnotherUserToRevert(user1Sk, USER2, DEPOSIT_AMOUNT);
+    function testDepositWithPermitToAnotherUser() public {
+        helper.makeDepositWithPermitToAnotherUser(user1Sk, RELAYER, DEPOSIT_AMOUNT);
     }
 
     function testNativeDepositWithInsufficientNativeTokens() public {

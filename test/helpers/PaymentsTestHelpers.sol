@@ -837,16 +837,14 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         verifyOperatorAllowances(from, operator, false, 0, 0, 0, 0, 0); // No values should have been set due to revert - expect defaults
     }
 
-    function expectDepositWithPermitToAnotherUserToRevert(uint256 senderSk, address to, uint256 amount) public {
-        address from = vm.addr(senderSk);
+    function makeDepositWithPermitToAnotherUser(uint256 senderSk, address depositer, uint256 amount) public {
+        address to = vm.addr(senderSk);
         uint256 deadline = block.timestamp + 1 hours;
 
-        // Get permit signature for the sender
-        (uint8 v, bytes32 r, bytes32 s) = getPermitSignature(senderSk, from, address(payments), amount, deadline);
+        // Get permit signature for 'to' address
+        (uint8 v, bytes32 r, bytes32 s) = getPermitSignature(senderSk, to, address(payments), amount, deadline);
 
-        // Expect revert when trying to deposit to a different address than msg.sender
-        vm.startPrank(from);
-        vm.expectRevert(abi.encodeWithSelector(Errors.PermitRecipientMustBeMsgSender.selector, from, to));
+        vm.startPrank(depositer);
         payments.depositWithPermit(address(testToken), to, amount, deadline, v, r, s);
         vm.stopPrank();
     }
