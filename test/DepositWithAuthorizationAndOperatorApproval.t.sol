@@ -183,6 +183,40 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         );
     }
 
+    function testDepositWithAuthorizationAndOperatorApproval_Revert_DifferentSender() public {
+        address from = vm.addr(user1Sk);
+        address to = from;
+        uint256 amount = DEPOSIT_AMOUNT;
+        uint256 validAfter = 0;
+        uint256 validBefore = block.timestamp + 60;
+        bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
+
+        (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
+            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+        );
+
+        // Attempt to submit as a different user
+        from = vm.addr(user2Sk);
+        vm.startPrank(from);
+        vm.expectRevert(abi.encodeWithSelector(Errors.SignerMustBeMsgSender.selector, from, to));
+        payments.depositWithAuthorizationAndApproveOperator(
+            address(testToken),
+            to,
+            amount,
+            validAfter,
+            validBefore,
+            nonce,
+            v,
+            r,
+            s,
+            OPERATOR,
+            RATE_ALLOWANCE,
+            LOCKUP_ALLOWANCE,
+            MAX_LOCKUP_PERIOD
+        );
+        vm.stopPrank();
+    }
+
     function testDepositWithAuthorizationAndIncreaseOperatorApproval_HappyPath() public {
         uint256 fromPrivateKey = user1Sk;
         address from = vm.addr(fromPrivateKey);
@@ -453,5 +487,57 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         assertEq(finalLockupAllowance, preLockupAllowance + lockupIncrease);
         assertEq(finalRateUsage, preRateUsage); // Usage unchanged
         assertEq(finalLockupUsage, preLockupUsage); // Usage unchanged
+    }
+
+    function testDepositWithAuthorizationAndIncreaseOperatorApproval_Revert_DifferentSender() public {
+        address from = vm.addr(user1Sk);
+        address to = from;
+        uint256 amount = DEPOSIT_AMOUNT;
+        uint256 validAfter = 0;
+        uint256 validBefore = block.timestamp + 60;
+        bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
+
+        (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
+            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+        );
+
+        // First establish initial operator approval with deposit
+        helper.depositWithAuthorizationAndOperatorApproval(
+            user1Sk, amount, 60 * 60, OPERATOR, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
+        );
+
+        // Verify initial approval state
+        (bool isApproved, uint256 initialRateAllowance, uint256 initialLockupAllowance,,,) =
+            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+        assertEq(isApproved, true);
+        assertEq(initialRateAllowance, RATE_ALLOWANCE);
+        assertEq(initialLockupAllowance, LOCKUP_ALLOWANCE);
+
+        // Prepare for the increase operation
+        uint256 rateIncrease = 10 ether;
+        uint256 lockupIncrease = 10 ether;
+
+        // Give USER1 more tokens for the additional deposit
+        testToken.mint(USER1, amount);
+
+        // Attempt to submit as a different user
+        from = vm.addr(user2Sk);
+        vm.startPrank(from);
+        vm.expectRevert(abi.encodeWithSelector(Errors.SignerMustBeMsgSender.selector, from, to));
+        payments.depositWithAuthorizationAndIncreaseOperatorApproval(
+            address(testToken),
+            to,
+            amount,
+            validAfter,
+            validBefore,
+            nonce,
+            v,
+            r,
+            s,
+            OPERATOR,
+            rateIncrease,
+            lockupIncrease
+        );
+        vm.stopPrank();
     }
 }
