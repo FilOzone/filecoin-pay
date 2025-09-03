@@ -220,7 +220,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         assertTrue(used);
     }
 
-    function testDepositWithAuthorization_Revert_SubmittedByDifferentSender() public {
+    function testDepositWithAuthorization_SubmittedByDifferentSender() public {
         address from = vm.addr(user1Sk);
         address to = from;
         uint256 amount = DEPOSIT_AMOUNT;
@@ -232,12 +232,36 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
             user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
         );
 
+        // Pre-state capture
+        uint256 fromBalanceBefore = helper._balanceOf(from, false);
+        uint256 paymentsBalanceBefore = helper._balanceOf(address(payments), false);
+        Payments.Account memory toAccountBefore = helper._getAccountData(to, false);
+
         // Attempt to submit as a different user
-        from = vm.addr(user2Sk);
-        vm.startPrank(from);
-        vm.expectRevert(abi.encodeWithSelector(Errors.SignerMustBeMsgSender.selector, from, to));
+        address relayer = vm.addr(user2Sk);
+        vm.startPrank(relayer);
         payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
+
+        // Post-state capture
+        uint256 fromBalanceAfter = helper._balanceOf(from, false);
+        uint256 paymentsBalanceAfter = helper._balanceOf(address(payments), false);
+        Payments.Account memory toAccountAfter = helper._getAccountData(to, false);
+
+        // Assertions
+        helper._assertDepositBalances(
+            fromBalanceBefore,
+            fromBalanceAfter,
+            paymentsBalanceBefore,
+            paymentsBalanceAfter,
+            toAccountBefore,
+            toAccountAfter,
+            amount
+        );
+
+        // Verify authorization is consumed on the token
+        bool used = IERC3009(address(testToken)).authorizationState(from, nonce);
+        assertTrue(used);
     }
 
     function testDepositWithAuthorization_Revert_InsufficientBalance() public {
