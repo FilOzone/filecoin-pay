@@ -285,4 +285,9 @@ library Errors {
     /// @param required The minimum required native token amount
     /// @param sent The amount of native token sent with the transaction
     error InsufficientNativeTokenForBurn(uint256 required, uint256 sent);
+
+    /// @notice The 'to' address in permit functions must be the message sender
+    /// @param expected The expected address (msg.sender)
+    /// @param actual The actual 'to' address provided
+    error PermitRecipientMustBeMsgSender(address expected, address actual);
 }
