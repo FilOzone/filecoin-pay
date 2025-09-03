@@ -65,12 +65,23 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
         uint256 deadline = block.timestamp + 1 hours;
 
         // get signature for permit
-        (uint8 v, bytes32 r, bytes32 s) = helper.getPermitSignature(user1Sk, from, address(payments), DEPOSIT_AMOUNT, deadline);
+        (uint8 v, bytes32 r, bytes32 s) =
+            helper.getPermitSignature(user1Sk, from, address(payments), DEPOSIT_AMOUNT, deadline);
 
         vm.startPrank(RELAYER);
         vm.expectRevert(abi.encodeWithSelector(Errors.PermitRecipientMustBeMsgSender.selector, RELAYER, from));
         payments.depositWithPermitAndApproveOperator(
-            address(testToken), from, DEPOSIT_AMOUNT, deadline, v, r, s, OPERATOR, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
+            address(testToken),
+            from,
+            DEPOSIT_AMOUNT,
+            deadline,
+            v,
+            r,
+            s,
+            OPERATOR,
+            RATE_ALLOWANCE,
+            LOCKUP_ALLOWANCE,
+            MAX_LOCKUP_PERIOD
         );
         vm.stopPrank();
     }
@@ -260,7 +271,7 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
 
     function testDepositWithPermitAndIncreaseOperatorApproval_Revert_DifferentSender() public {
         address from = USER1;
-        
+
         // Step 1: First establish initial operator approval with deposit
         helper.makeDepositWithPermitAndOperatorApproval(
             user1Sk, DEPOSIT_AMOUNT, OPERATOR, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
