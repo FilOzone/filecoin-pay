@@ -59,6 +59,33 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
         );
     }
 
+    function testDepositWithPermitAndOperatorApproval_Revert_DifferentSender() public {
+        address from = USER1;
+        address to = from;
+        uint256 deadline = block.timestamp + 1 hours;
+
+        // get signature for permit
+        (uint8 v, bytes32 r, bytes32 s) =
+            helper.getPermitSignature(user1Sk, from, address(payments), DEPOSIT_AMOUNT, deadline);
+
+        vm.startPrank(RELAYER);
+        vm.expectRevert(abi.encodeWithSelector(Errors.PermitRecipientMustBeMsgSender.selector, RELAYER, from));
+        payments.depositWithPermitAndApproveOperator(
+            address(testToken),
+            from,
+            DEPOSIT_AMOUNT,
+            deadline,
+            v,
+            r,
+            s,
+            OPERATOR,
+            RATE_ALLOWANCE,
+            LOCKUP_ALLOWANCE,
+            MAX_LOCKUP_PERIOD
+        );
+        vm.stopPrank();
+    }
+
     // SECTION: Deposit With Permit And Increase Operator Approval Tests
 
     function testDepositWithPermitAndIncreaseOperatorApproval_HappyPath() public {
@@ -240,5 +267,41 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
         assertEq(finalLockupAllowance, preLockupAllowance + lockupIncrease);
         assertEq(finalRateUsage, preRateUsage); // Usage unchanged
         assertEq(finalLockupUsage, preLockupUsage); // Usage unchanged
+    }
+
+    function testDepositWithPermitAndIncreaseOperatorApproval_Revert_DifferentSender() public {
+        address from = USER1;
+
+        // Step 1: First establish initial operator approval with deposit
+        helper.makeDepositWithPermitAndOperatorApproval(
+            user1Sk, DEPOSIT_AMOUNT, OPERATOR, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
+        );
+
+        // Step 2: Verify initial approval state
+        (bool isApproved, uint256 initialRateAllowance, uint256 initialLockupAllowance,,,) =
+            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+        assertEq(isApproved, true);
+        assertEq(initialRateAllowance, RATE_ALLOWANCE);
+        assertEq(initialLockupAllowance, LOCKUP_ALLOWANCE);
+
+        // Step 3: Prepare for the increase operation
+        uint256 additionalDeposit = 500 ether;
+        uint256 rateIncrease = 50 ether;
+        uint256 lockupIncrease = 500 ether;
+
+        // Give USER1 more tokens for the additional deposit
+        testToken.mint(USER1, additionalDeposit);
+
+        // Get permit signature for the additional deposit
+        uint256 deadline = block.timestamp + 1 hours;
+        (uint8 v, bytes32 r, bytes32 s) =
+            helper.getPermitSignature(user1Sk, USER1, address(payments), additionalDeposit, deadline);
+
+        vm.startPrank(RELAYER);
+        vm.expectRevert(abi.encodeWithSelector(Errors.PermitRecipientMustBeMsgSender.selector, RELAYER, from));
+        payments.depositWithPermitAndIncreaseOperatorApproval(
+            address(testToken), USER1, additionalDeposit, deadline, v, r, s, OPERATOR, rateIncrease, lockupIncrease
+        );
+        vm.stopPrank();
     }
 }
