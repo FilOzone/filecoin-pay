@@ -1,15 +1,15 @@
 new MockERC20: 30167032
-new Payments: 91741152
-setOperatorApproval: 10381233
-createRail: 14797002
+new Payments: 91617663
+setOperatorApproval: 10379999
+createRail: 14795768
 mint: 7228328
 approve: 5415547
-deposit: 23650966
-modifyRailPayment: 18633927
-modifyRailLockup: 20504445
-modifyRailPayment: 23897583
-settleRail: 18003516
-withdraw: 22007020
-withdrawTo: 22093283
-settleRail: 21465656
-terminateRail: 19595369
+deposit: 23649731
+modifyRailPayment: 18632692
+modifyRailLockup: 20503211
+modifyRailPayment: 23896348
+settleRail: 18002282
+withdraw: 22005786
+withdrawTo: 22092049
+settleRail: 21463122
+terminateRail: 19592834
