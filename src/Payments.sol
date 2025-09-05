@@ -631,7 +631,7 @@ contract Payments is ReentrancyGuard {
         bytes32 r,
         bytes32 s
     ) external nonReentrant validateNonZeroAddress(to, "to") settleAccountLockupBeforeAndAfter(token, to, false) {
-        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
+        _depositWithAuthorization(IERC3009(token), to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 
     /**
@@ -677,7 +677,7 @@ contract Payments is ReentrancyGuard {
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
         _setOperatorApproval(token, operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
-        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
+        _depositWithAuthorization(IERC3009(token), to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 
     /**
@@ -717,11 +717,11 @@ contract Payments is ReentrancyGuard {
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
         _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
-        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
+        _depositWithAuthorization(IERC3009(token), to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 
     function _depositWithAuthorization(
-        address token,
+        IERC3009 token,
         address to,
         uint256 amount,
         uint256 validAfter,
@@ -732,25 +732,25 @@ contract Payments is ReentrancyGuard {
         bytes32 s
     ) internal {
         // Revert if token is address(0) as authorization is not supported for native tokens
-        require(token != address(0), Errors.NativeTokenNotSupported());
+        require(address(token) != address(0), Errors.NativeTokenNotSupported());
 
         // Use balance-before/balance-after accounting to correctly handle fee-on-transfer tokens
-        uint256 balanceBefore = IERC20(token).balanceOf(address(this));
+        uint256 balanceBefore = token.balanceOf(address(this));
 
         // Call ERC-3009 transferWithAuthorization.
         // This will transfer 'amount' from 'to' to this contract.
         // The token contract itself verifies the signature.
-        IERC3009(token).receiveWithAuthorization(to, address(this), amount, validAfter, validBefore, nonce, v, r, s);
+        token.receiveWithAuthorization(to, address(this), amount, validAfter, validBefore, nonce, v, r, s);
 
-        uint256 balanceAfter = IERC20(token).balanceOf(address(this));
+        uint256 balanceAfter = token.balanceOf(address(this));
         uint256 actualAmount = balanceAfter - balanceBefore;
 
         // Credit the beneficiary's internal account
-        Account storage account = accounts[token][to];
+        Account storage account = accounts[address(token)][to];
         account.funds += actualAmount;
 
         // Emit an event to record the deposit, marking it as made via an off-chain signature.
-        emit DepositRecorded(token, to, to, actualAmount);
+        emit DepositRecorded(address(token), to, to, actualAmount);
     }
 
     /// @notice Withdraws tokens from the caller's account to the caller's account, up to the amount of currently available tokens (the tokens not currently locked in rails).
