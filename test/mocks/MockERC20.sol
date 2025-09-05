@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {IERC3009} from "../../src/interfaces/IERC3009.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title MockERC20
  * @dev A mock ERC20 token with permit (ERC-2612) and transferWithAuthorization (ERC-3009) functionality for testing purposes.
  */
-contract MockERC20 is ERC20Permit {
+contract MockERC20 is ERC20, ERC20Permit, IERC3009 {
     // --- ERC-3009 State and Constants ---
     mapping(address => mapping(bytes32 => bool)) private _authorizationStates;
 
