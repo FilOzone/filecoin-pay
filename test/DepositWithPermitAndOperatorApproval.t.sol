@@ -69,7 +69,7 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
             helper.getPermitSignature(user1Sk, from, address(payments), DEPOSIT_AMOUNT, deadline);
 
         vm.startPrank(RELAYER);
-        vm.expectRevert(abi.encodeWithSelector(Errors.PermitRecipientMustBeMsgSender.selector, RELAYER, from));
+        vm.expectRevert(abi.encodeWithSelector(Errors.SignerMustBeMsgSender.selector, RELAYER, from));
         payments.depositWithPermitAndApproveOperator(
             address(testToken),
             from,
@@ -298,7 +298,7 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
             helper.getPermitSignature(user1Sk, USER1, address(payments), additionalDeposit, deadline);
 
         vm.startPrank(RELAYER);
-        vm.expectRevert(abi.encodeWithSelector(Errors.PermitRecipientMustBeMsgSender.selector, RELAYER, from));
+        vm.expectRevert(abi.encodeWithSelector(Errors.SignerMustBeMsgSender.selector, RELAYER, from));
         payments.depositWithPermitAndIncreaseOperatorApproval(
             address(testToken), USER1, additionalDeposit, deadline, v, r, s, OPERATOR, rateIncrease, lockupIncrease
         );
