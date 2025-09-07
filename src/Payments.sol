@@ -492,12 +492,7 @@ contract Payments is ReentrancyGuard {
         uint8 v,
         bytes32 r,
         bytes32 s
-    )
-        external
-        nonReentrant
-        validateNonZeroAddress(to, "to")
-        settleAccountLockupBeforeAndAfter(token, to, false)
-    {
+    ) external nonReentrant validateNonZeroAddress(to, "to") settleAccountLockupBeforeAndAfter(token, to, false) {
         _depositWithPermit(token, to, amount, deadline, v, r, s);
     }
 
