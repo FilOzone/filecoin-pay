@@ -979,6 +979,7 @@ contract Payments is ReentrancyGuard {
     /// @return note Additional information about the settlement.
     function settleTerminatedRailWithoutValidation(uint256 railId)
         external
+        payable
         nonReentrant
         validateRailActive(railId)
         validateRailTerminated(railId)
@@ -992,6 +993,9 @@ contract Payments is ReentrancyGuard {
             string memory note
         )
     {
+        if (NETWORK_FEE > 0) {
+            burnAndRefundRest(NETWORK_FEE);
+        }
         // Verify the current epoch is greater than the max settlement epoch
         uint256 maxSettleEpoch = maxSettlementEpochForTerminatedRail(rails[railId], railId);
         require(
