@@ -892,7 +892,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         vm.expectRevert(
             abi.encodeWithSignature("ERC20InsufficientBalance(address,uint256,uint256)", from, INITIAL_BALANCE, amount)
         );
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
     }
 
@@ -936,7 +936,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         vm.startPrank(from);
 
         payments.depositWithAuthorizationAndApproveOperator(
-            address(testToken),
+            testToken,
             to,
             amount,
             validAfter,

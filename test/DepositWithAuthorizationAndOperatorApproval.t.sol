@@ -67,7 +67,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         vm.expectRevert("EIP3009: invalid signature");
         payments.depositWithAuthorizationAndApproveOperator(
-            address(testToken),
+            testToken,
             to,
             amount,
             validAfter,
@@ -103,7 +103,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         vm.startPrank(from);
         vm.expectRevert("EIP712: invalid signature"); // invalid signature should revert
         payments.depositWithAuthorizationAndApproveOperator(
-            address(testToken),
+            testToken,
             to,
             amount,
             validAfter,
@@ -137,7 +137,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         vm.startPrank(from);
         vm.expectRevert("EIP3009: authorization expired"); // expired window should revert
         payments.depositWithAuthorizationAndApproveOperator(
-            address(testToken),
+            testToken,
             to,
             amount,
             validAfter,
@@ -168,7 +168,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         vm.startPrank(from);
         vm.expectRevert("EIP3009: authorization not yet valid"); // not yet valid
         payments.depositWithAuthorizationAndApproveOperator(
-            address(testToken),
+            testToken,
             to,
             amount,
             validAfter,
@@ -201,7 +201,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         vm.startPrank(from);
         vm.expectRevert(abi.encodeWithSelector(Errors.SignerMustBeMsgSender.selector, from, to));
         payments.depositWithAuthorizationAndApproveOperator(
-            address(testToken),
+            testToken,
             to,
             amount,
             validAfter,
@@ -259,7 +259,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Step 4: Execute depositWithAuthorizationAndIncreaseOperatorApproval
         vm.startPrank(USER1);
         payments.depositWithAuthorizationAndIncreaseOperatorApproval(
-            address(testToken),
+            testToken,
             to,
             additionalDeposit,
             validAfter,
@@ -328,7 +328,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Step 4: Execute depositWithAuthorizationAndIncreaseOperatorApproval
         vm.startPrank(USER1);
         payments.depositWithAuthorizationAndIncreaseOperatorApproval(
-            address(testToken),
+            testToken,
             to,
             additionalDeposit,
             validAfter,
@@ -394,7 +394,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         vm.startPrank(USER1);
         vm.expectRevert("EIP3009: invalid signature");
         payments.depositWithAuthorizationAndIncreaseOperatorApproval(
-            address(testToken),
+            testToken,
             to,
             additionalDeposit,
             validAfter,
@@ -463,7 +463,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Execute increase with existing usage
         vm.startPrank(USER1);
         payments.depositWithAuthorizationAndIncreaseOperatorApproval(
-            address(testToken),
+            testToken,
             to,
             additionalDeposit,
             validAfter,
@@ -526,18 +526,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         vm.startPrank(from);
         vm.expectRevert(abi.encodeWithSelector(Errors.SignerMustBeMsgSender.selector, from, to));
         payments.depositWithAuthorizationAndIncreaseOperatorApproval(
-            address(testToken),
-            to,
-            amount,
-            validAfter,
-            validBefore,
-            nonce,
-            v,
-            r,
-            s,
-            OPERATOR,
-            rateIncrease,
-            lockupIncrease
+            testToken, to, amount, validAfter, validBefore, nonce, v, r, s, OPERATOR, rateIncrease, lockupIncrease
         );
         vm.stopPrank();
     }

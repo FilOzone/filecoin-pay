@@ -607,7 +607,7 @@ contract Payments is ReentrancyGuard {
 
     /**
      * @notice Deposits tokens using an ERC-3009 authorization in a single transaction.
-     * @param token The ERC-20 token address to deposit. Must conform to ERC-3009.
+     * @param token The ERC-3009-compliant token contract.
      * @param to The address whose account within the contract will be credited.
      * @param amount The amount of tokens to deposit.
      * @param validAfter The timestamp after which the authorization is valid.
@@ -616,7 +616,7 @@ contract Payments is ReentrancyGuard {
      * @param v,r,s The signature of the authorization.
      */
     function depositWithAuthorization(
-        address token,
+        IERC3009 token,
         address to,
         uint256 amount,
         uint256 validAfter,
@@ -625,14 +625,19 @@ contract Payments is ReentrancyGuard {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external nonReentrant validateNonZeroAddress(to, "to") settleAccountLockupBeforeAndAfter(token, to, false) {
-        _depositWithAuthorization(IERC3009(token), to, amount, validAfter, validBefore, nonce, v, r, s);
+    )
+        external
+        nonReentrant
+        validateNonZeroAddress(to, "to")
+        settleAccountLockupBeforeAndAfter(address(token), to, false)
+    {
+        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 
     /**
      * @notice Deposits tokens using an ERC-3009 authorization in a single transaction.
      *         while also setting operator approval.
-     * @param token The ERC-20 token address to deposit. Must conform to ERC-3009.
+     * @param token The ERC-3009-compliant token contract.
      * @param to The address whose account within the contract will be credited.
      * @param amount The amount of tokens to deposit.
      * @param validAfter The timestamp after which the authorization is valid.
@@ -650,7 +655,7 @@ contract Payments is ReentrancyGuard {
      *             the current lockup period for a rail, the operator will only be able to reduce the lockup period.
      */
     function depositWithAuthorizationAndApproveOperator(
-        address token,
+        IERC3009 token,
         address to,
         uint256 amount,
         uint256 validAfter,
@@ -669,16 +674,16 @@ contract Payments is ReentrancyGuard {
         validateNonZeroAddress(operator, "operator")
         validateNonZeroAddress(to, "to")
         validateSignerIsRecipient(to)
-        settleAccountLockupBeforeAndAfter(token, to, false)
+        settleAccountLockupBeforeAndAfter(address(token), to, false)
     {
-        _setOperatorApproval(token, operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
-        _depositWithAuthorization(IERC3009(token), to, amount, validAfter, validBefore, nonce, v, r, s);
+        _setOperatorApproval(address(token), operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
+        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 
     /**
      * @notice Deposits tokens using an ERC-3009 authorization in a single transaction.
      *         while also setting operator approval.
-     * @param token The ERC-20 token address to deposit. Must conform to ERC-3009.
+     * @param token The ERC-3009-compliant token contract.
      * @param to The address whose account within the contract will be credited.
      * @param amount The amount of tokens to deposit.
      * @param validAfter The timestamp after which the authorization is valid.
@@ -691,7 +696,7 @@ contract Payments is ReentrancyGuard {
      * @custom:constraint Operator must already be approved.
      */
     function depositWithAuthorizationAndIncreaseOperatorApproval(
-        address token,
+        IERC3009 token,
         address to,
         uint256 amount,
         uint256 validAfter,
@@ -709,10 +714,10 @@ contract Payments is ReentrancyGuard {
         validateNonZeroAddress(operator, "operator")
         validateNonZeroAddress(to, "to")
         validateSignerIsRecipient(to)
-        settleAccountLockupBeforeAndAfter(token, to, false)
+        settleAccountLockupBeforeAndAfter(address(token), to, false)
     {
-        _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
-        _depositWithAuthorization(IERC3009(token), to, amount, validAfter, validBefore, nonce, v, r, s);
+        _increaseOperatorApproval(address(token), operator, rateAllowanceIncrease, lockupAllowanceIncrease);
+        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 
     function _depositWithAuthorization(
@@ -732,7 +737,7 @@ contract Payments is ReentrancyGuard {
         // Use balance-before/balance-after accounting to correctly handle fee-on-transfer tokens
         uint256 balanceBefore = token.balanceOf(address(this));
 
-        // Call ERC-3009 transferWithAuthorization.
+        // Call ERC-3009 receiveWithAuthorization.
         // This will transfer 'amount' from 'to' to this contract.
         // The token contract itself verifies the signature.
         token.receiveWithAuthorization(to, address(this), amount, validAfter, validBefore, nonce, v, r, s);

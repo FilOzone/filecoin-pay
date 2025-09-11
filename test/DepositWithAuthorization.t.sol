@@ -65,7 +65,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Execute deposit via authorization
         vm.startPrank(from);
 
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
 
         vm.stopPrank();
 
@@ -106,10 +106,10 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         );
 
         vm.startPrank(from);
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
         // Second attempt with same nonce must revert
         vm.expectRevert("EIP3009: authorization already used");
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
     }
 
@@ -128,7 +128,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         vm.startPrank(from);
         vm.expectRevert("EIP3009: invalid signature");
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
     }
 
@@ -149,7 +149,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         vm.startPrank(from);
         vm.expectRevert("EIP712: invalid signature"); // invalid signature should revert
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
     }
 
@@ -170,7 +170,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         vm.startPrank(from);
         vm.expectRevert("EIP3009: authorization expired"); // expired window should revert
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
     }
 
@@ -193,11 +193,11 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         vm.startPrank(from);
         vm.expectRevert("EIP3009: authorization not yet valid"); // not yet valid
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
 
         // Now advance to validAfter + 1 and succeed
         vm.warp(validAfter + 1);
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
 
         // Post-state capture
@@ -241,7 +241,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Attempt to submit as a different user
         address relayer = vm.addr(user2Sk);
         vm.startPrank(relayer);
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
 
         // Post-state capture
@@ -287,7 +287,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         vm.startPrank(from);
         vm.expectRevert("EIP3009: invalid signature"); // domain mismatch
-        payments.depositWithAuthorization(address(testToken), to, amount, validAfter, validBefore, nonce, v, r, s);
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
         vm.stopPrank();
     }
 }
