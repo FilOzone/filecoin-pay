@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {Payments} from "../../src/Payments.sol";
+import {IERC3009} from "../../src/interfaces/IERC3009.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {BaseTestHelper} from "./BaseTestHelper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -131,7 +132,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         Payments.Account memory toAccountBefore,
         Payments.Account memory toAccountAfter,
         uint256 amount
-    ) private pure {
+    ) public pure {
         assertEq(fromBalanceAfter, fromBalanceBefore - amount, "Sender's balance not reduced correctly");
         assertEq(
             paymentsBalanceAfter, paymentsBalanceBefore + amount, "Payments contract balance not increased correctly"
@@ -154,7 +155,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         return _getAccountData(user, true);
     }
 
-    function _getAccountData(address user, bool useNativeToken) private view returns (Payments.Account memory) {
+    function _getAccountData(address user, bool useNativeToken) public view returns (Payments.Account memory) {
         address token = useNativeToken ? address(0) : address(testToken);
         (uint256 funds, uint256 lockupCurrent, uint256 lockupRate, uint256 lockupLastSettledAt) =
             payments.accounts(token, user);
@@ -257,7 +258,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         );
     }
 
-    function _balanceOf(address addr, bool useNativeToken) private view returns (uint256) {
+    function _balanceOf(address addr, bool useNativeToken) public view returns (uint256) {
         if (useNativeToken) {
             return addr.balance;
         } else {
@@ -847,5 +848,131 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         vm.startPrank(depositer);
         payments.depositWithPermit(address(testToken), to, amount, deadline, v, r, s);
         vm.stopPrank();
+    }
+
+    function getReceiveWithAuthorizationSignature(
+        uint256 privateKey,
+        address token,
+        address from,
+        address to,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce
+    ) public view returns (uint8 v, bytes32 r, bytes32 s) {
+        // EIP-712 domain for ERC-3009 (MockERC20 defines its own domainSeparator unrelated to ERC2612)
+        bytes32 DOMAIN_SEPARATOR = MockERC20(address(token)).domainSeparator();
+
+        // keccak256("ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)")
+        bytes32 TYPEHASH = keccak256(
+            "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
+        ); // as per EIP-3009
+
+        bytes32 structHash = keccak256(abi.encode(TYPEHASH, from, to, value, validAfter, validBefore, nonce));
+
+        bytes32 digest = MessageHashUtils.toTypedDataHash(DOMAIN_SEPARATOR, structHash);
+
+        (v, r, s) = vm.sign(privateKey, digest);
+    }
+
+    function depositWithAuthorizationInsufficientBalance(uint256 fromPrivateKey) public {
+        address from = vm.addr(fromPrivateKey);
+        address to = from;
+        uint256 validAfter = 0;
+        uint256 validBefore = block.timestamp + 300;
+        uint256 amount = INITIAL_BALANCE + 1;
+        bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
+
+        (uint8 v, bytes32 r, bytes32 s) = getReceiveWithAuthorizationSignature(
+            fromPrivateKey, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+        );
+
+        vm.startPrank(from);
+        // Since signature is valid but balance is insufficient, MockERC20 will revert with ERC20InsufficientBalance
+        vm.expectRevert(
+            abi.encodeWithSignature("ERC20InsufficientBalance(address,uint256,uint256)", from, INITIAL_BALANCE, amount)
+        );
+        payments.depositWithAuthorization(testToken, to, amount, validAfter, validBefore, nonce, v, r, s);
+        vm.stopPrank();
+    }
+
+    function depositWithAuthorizationAndOperatorApproval(
+        uint256 fromPrivateKey,
+        uint256 amount,
+        uint256 validForSeconds,
+        address operator,
+        uint256 rateAllowance,
+        uint256 lockupAllowance,
+        uint256 maxLockupPeriod
+    ) public returns (bytes32 nonce) {
+        address from = vm.addr(fromPrivateKey);
+        address to = from;
+
+        // Windows
+        uint256 validAfter = 0; // valid immediately
+        uint256 validBefore = block.timestamp + validForSeconds;
+
+        // Unique nonce
+        nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
+
+        // Pre-state capture
+        uint256 fromBalanceBefore = _balanceOf(from, false);
+        uint256 paymentsBalanceBefore = _balanceOf(address(payments), false);
+        Payments.Account memory toAccountBefore = _getAccountData(to, false);
+
+        // Build signature
+        (uint8 v, bytes32 r, bytes32 s) = getReceiveWithAuthorizationSignature(
+            fromPrivateKey,
+            address(testToken),
+            from,
+            address(payments), // pay to Payments contract
+            amount,
+            validAfter,
+            validBefore,
+            nonce
+        );
+
+        // Execute deposit via authorization
+        vm.startPrank(from);
+
+        payments.depositWithAuthorizationAndApproveOperator(
+            testToken,
+            to,
+            amount,
+            validAfter,
+            validBefore,
+            nonce,
+            v,
+            r,
+            s,
+            operator,
+            rateAllowance,
+            lockupAllowance,
+            maxLockupPeriod
+        );
+
+        vm.stopPrank();
+
+        // Post-state capture
+        uint256 fromBalanceAfter = _balanceOf(from, false);
+        uint256 paymentsBalanceAfter = _balanceOf(address(payments), false);
+        Payments.Account memory toAccountAfter = _getAccountData(from, false);
+
+        // Assertions
+        _assertDepositBalances(
+            fromBalanceBefore,
+            fromBalanceAfter,
+            paymentsBalanceBefore,
+            paymentsBalanceAfter,
+            toAccountBefore,
+            toAccountAfter,
+            amount
+        );
+
+        // Verify authorization is consumed on the token
+        bool used = IERC3009(address(testToken)).authorizationState(from, nonce);
+        assertTrue(used);
+
+        verifyOperatorAllowances(from, operator, true, rateAllowance, lockupAllowance, 0, 0, maxLockupPeriod);
     }
 }

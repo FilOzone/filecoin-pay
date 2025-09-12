@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-
 import "./Errors.sol";
 import "./RateChangeQueue.sol";
+import "./interfaces/IERC3009.sol";
 
 interface IValidator {
     struct ValidationResult {
@@ -91,9 +91,7 @@ contract Payments is ReentrancyGuard {
     event RailTerminated(uint256 indexed railId, address indexed by, uint256 endEpoch);
     event RailFinalized(uint256 indexed railId);
 
-    event DepositRecorded(
-        address indexed token, address indexed from, address indexed to, uint256 amount, bool usedPermit
-    );
+    event DepositRecorded(address indexed token, address indexed from, address indexed to, uint256 amount);
     event WithdrawRecorded(address indexed token, address indexed from, address indexed to, uint256 amount);
 
     struct Account {
@@ -225,8 +223,8 @@ contract Payments is ReentrancyGuard {
         _;
     }
 
-    modifier validatePermitRecipient(address to) {
-        require(to == msg.sender, Errors.PermitRecipientMustBeMsgSender(msg.sender, to));
+    modifier validateSignerIsRecipient(address to) {
+        require(to == msg.sender, Errors.SignerMustBeMsgSender(msg.sender, to));
         _;
     }
 
@@ -365,16 +363,16 @@ contract Payments is ReentrancyGuard {
         uint256 rateAllowanceIncrease,
         uint256 lockupAllowanceIncrease
     ) external nonReentrant validateNonZeroAddress(operator, "operator") {
-        _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
+        _increaseOperatorApproval(IERC20(token), operator, rateAllowanceIncrease, lockupAllowanceIncrease);
     }
 
     function _increaseOperatorApproval(
-        address token,
+        IERC20 token,
         address operator,
         uint256 rateAllowanceIncrease,
         uint256 lockupAllowanceIncrease
     ) internal {
-        OperatorApproval storage approval = operatorApprovals[token][msg.sender][operator];
+        OperatorApproval storage approval = operatorApprovals[address(token)][msg.sender][operator];
 
         // Operator must already be approved
         require(approval.isApproved, Errors.OperatorNotApproved(msg.sender, operator));
@@ -384,7 +382,7 @@ contract Payments is ReentrancyGuard {
         approval.lockupAllowance += lockupAllowanceIncrease;
 
         emit OperatorApprovalUpdated(
-            token,
+            address(token),
             msg.sender,
             operator,
             approval.isApproved,
@@ -475,7 +473,7 @@ contract Payments is ReentrancyGuard {
 
         account.funds += actualAmount;
 
-        emit DepositRecorded(token, msg.sender, to, actualAmount, false);
+        emit DepositRecorded(token, msg.sender, to, actualAmount);
     }
 
     /**
@@ -524,7 +522,7 @@ contract Payments is ReentrancyGuard {
 
         account.funds += actualAmount;
 
-        emit DepositRecorded(token, to, to, actualAmount, true);
+        emit DepositRecorded(token, to, to, actualAmount);
     }
 
     /**
@@ -563,7 +561,7 @@ contract Payments is ReentrancyGuard {
         nonReentrant
         validateNonZeroAddress(operator, "operator")
         validateNonZeroAddress(to, "to")
-        validatePermitRecipient(to)
+        validateSignerIsRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
         _setOperatorApproval(token, operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
@@ -600,11 +598,159 @@ contract Payments is ReentrancyGuard {
         nonReentrant
         validateNonZeroAddress(operator, "operator")
         validateNonZeroAddress(to, "to")
-        validatePermitRecipient(to)
+        validateSignerIsRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
-        _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
+        _increaseOperatorApproval(IERC20(token), operator, rateAllowanceIncrease, lockupAllowanceIncrease);
         _depositWithPermit(token, to, amount, deadline, v, r, s);
+    }
+
+    /**
+     * @notice Deposits tokens using an ERC-3009 authorization in a single transaction.
+     * @param token The ERC-3009-compliant token contract.
+     * @param to The address whose account within the contract will be credited.
+     * @param amount The amount of tokens to deposit.
+     * @param validAfter The timestamp after which the authorization is valid.
+     * @param validBefore The timestamp before which the authorization is valid.
+     * @param nonce A unique nonce for the authorization, used to prevent replay attacks.
+     * @param v,r,s The signature of the authorization.
+     */
+    function depositWithAuthorization(
+        IERC3009 token,
+        address to,
+        uint256 amount,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    )
+        external
+        nonReentrant
+        validateNonZeroAddress(to, "to")
+        settleAccountLockupBeforeAndAfter(address(token), to, false)
+    {
+        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
+    }
+
+    /**
+     * @notice Deposits tokens using an ERC-3009 authorization in a single transaction.
+     *         while also setting operator approval.
+     * @param token The ERC-3009-compliant token contract.
+     * @param to The address whose account within the contract will be credited.
+     * @param amount The amount of tokens to deposit.
+     * @param validAfter The timestamp after which the authorization is valid.
+     * @param validBefore The timestamp before which the authorization is valid.
+     * @param nonce A unique nonce for the authorization, used to prevent replay attacks.
+     * @param v,r,s The signature of the authorization.
+     * @param operator The address of the operator whose approval is being modified.
+     * @param rateAllowance The maximum payment rate the operator can set across all rails created by the operator
+     *             on behalf of the message sender. If this is less than the current payment rate, the operator will
+     *             only be able to reduce rates until they fall below the target.
+     * @param lockupAllowance The maximum amount of funds the operator can lock up on behalf of the message sender
+     *             towards future payments. If this exceeds the current total amount of funds locked towards future payments,
+     *             the operator will only be able to reduce future lockup.
+     * @param maxLockupPeriod The maximum number of epochs (blocks) the operator can lock funds for. If this is less than
+     *             the current lockup period for a rail, the operator will only be able to reduce the lockup period.
+     */
+    function depositWithAuthorizationAndApproveOperator(
+        IERC3009 token,
+        address to,
+        uint256 amount,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        address operator,
+        uint256 rateAllowance,
+        uint256 lockupAllowance,
+        uint256 maxLockupPeriod
+    )
+        external
+        nonReentrant
+        validateNonZeroAddress(operator, "operator")
+        validateNonZeroAddress(to, "to")
+        validateSignerIsRecipient(to)
+        settleAccountLockupBeforeAndAfter(address(token), to, false)
+    {
+        _setOperatorApproval(address(token), operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
+        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
+    }
+
+    /**
+     * @notice Deposits tokens using an ERC-3009 authorization in a single transaction.
+     *         while also setting operator approval.
+     * @param token The ERC-3009-compliant token contract.
+     * @param to The address whose account within the contract will be credited.
+     * @param amount The amount of tokens to deposit.
+     * @param validAfter The timestamp after which the authorization is valid.
+     * @param validBefore The timestamp before which the authorization is valid.
+     * @param nonce A unique nonce for the authorization, used to prevent replay attacks.
+     * @param v,r,s The signature of the authorization.
+     * @param operator The address of the operator whose allowances are being increased.
+     * @param rateAllowanceIncrease The amount to increase the rate allowance by.
+     * @param lockupAllowanceIncrease The amount to increase the lockup allowance by.
+     * @custom:constraint Operator must already be approved.
+     */
+    function depositWithAuthorizationAndIncreaseOperatorApproval(
+        IERC3009 token,
+        address to,
+        uint256 amount,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        address operator,
+        uint256 rateAllowanceIncrease,
+        uint256 lockupAllowanceIncrease
+    )
+        external
+        nonReentrant
+        validateNonZeroAddress(operator, "operator")
+        validateNonZeroAddress(to, "to")
+        validateSignerIsRecipient(to)
+        settleAccountLockupBeforeAndAfter(address(token), to, false)
+    {
+        _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
+        _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
+    }
+
+    function _depositWithAuthorization(
+        IERC3009 token,
+        address to,
+        uint256 amount,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) internal {
+        // Revert if token is address(0) as authorization is not supported for native tokens
+        require(address(token) != address(0), Errors.NativeTokenNotSupported());
+
+        // Use balance-before/balance-after accounting to correctly handle fee-on-transfer tokens
+        uint256 balanceBefore = token.balanceOf(address(this));
+
+        // Call ERC-3009 receiveWithAuthorization.
+        // This will transfer 'amount' from 'to' to this contract.
+        // The token contract itself verifies the signature.
+        token.receiveWithAuthorization(to, address(this), amount, validAfter, validBefore, nonce, v, r, s);
+
+        uint256 balanceAfter = token.balanceOf(address(this));
+        uint256 actualAmount = balanceAfter - balanceBefore;
+
+        // Credit the beneficiary's internal account
+        Account storage account = accounts[address(token)][to];
+        account.funds += actualAmount;
+
+        // Emit an event to record the deposit, marking it as made via an off-chain signature.
+        emit DepositRecorded(address(token), to, to, actualAmount);
     }
 
     /// @notice Withdraws tokens from the caller's account to the caller's account, up to the amount of currently available tokens (the tokens not currently locked in rails).

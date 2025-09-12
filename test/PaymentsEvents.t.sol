@@ -310,7 +310,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // Only check the first three indexed parameters
         vm.expectEmit(true, true, true, true);
         emit Payments.AccountLockupSettled(address(testToken), USER2, 0, 0, block.number);
-        emit Payments.DepositRecorded(address(testToken), USER1, USER2, 10 ether, false); // Amount not checked
+        emit Payments.DepositRecorded(address(testToken), USER1, USER2, 10 ether); // Amount not checked
 
         // Deposit tokens
         payments.deposit(address(testToken), USER2, 10 ether);
@@ -337,7 +337,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // Expect the event to be emitted
         vm.expectEmit(true, true, false, true);
         emit Payments.AccountLockupSettled(address(testToken), signer, 0, 0, block.number);
-        emit Payments.DepositRecorded(address(testToken), signer, signer, depositAmount, true);
+        emit Payments.DepositRecorded(address(testToken), signer, signer, depositAmount);
 
         // Deposit with permit
         payments.depositWithPermit(address(testToken), signer, depositAmount, deadline, v, r, s);

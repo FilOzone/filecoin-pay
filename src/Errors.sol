@@ -286,8 +286,9 @@ library Errors {
     /// @param sent The amount of native token sent with the transaction
     error InsufficientNativeTokenForBurn(uint256 required, uint256 sent);
 
-    /// @notice The 'to' address in permit functions must be the message sender
+    /// @notice The 'to' address must equal the transaction sender (self-recipient enforcement)
+    /// @dev Used by flows like permit and transfer-with-authorization to ensure only self-deposits
     /// @param expected The expected address (msg.sender)
     /// @param actual The actual 'to' address provided
-    error PermitRecipientMustBeMsgSender(address expected, address actual);
+    error SignerMustBeMsgSender(address expected, address actual);
 }
