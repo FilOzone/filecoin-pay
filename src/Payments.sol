@@ -41,7 +41,7 @@ contract Payments is ReentrancyGuard {
     // Maximum commission rate in basis points (100% = 10000 BPS)
     uint256 public constant COMMISSION_MAX_BPS = 10000;
 
-    uint256 public constant NETWORK_FEE = 1300000 gwei; // equivalent to 130000 nFIL
+    uint256 public constant NETWORK_FEE = 1300000 gwei; // equivalent to 1300000 nanoFIL / 0.0013 FIL
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
 
     // Events
@@ -1117,6 +1117,7 @@ contract Payments is ReentrancyGuard {
     }
 
     /// @notice Settles payments for a terminated rail without validation. This may only be called by the payee and after the terminated rail's max settlement epoch has passed. It's an escape-hatch to unblock payments in an otherwise stuck rail (e.g., due to a buggy validator contract) and it always pays in full.
+    /// @notice The caller must include NETWORK_FEE amount of native token as a fee.
     /// @param railId The ID of the rail to settle.
     /// @return totalSettledAmount The total amount settled and transferred.
     /// @return totalNetPayeeAmount The net amount credited to the payee after fees.
@@ -1139,9 +1140,6 @@ contract Payments is ReentrancyGuard {
             string memory note
         )
     {
-        if (NETWORK_FEE > 0) {
-            burnAndRefundRest(NETWORK_FEE);
-        }
         // Verify the current epoch is greater than the max settlement epoch
         uint256 maxSettleEpoch = maxSettlementEpochForTerminatedRail(rails[railId], railId);
         require(
@@ -1166,7 +1164,7 @@ contract Payments is ReentrancyGuard {
     }
 
     /// @notice Settles payments for a rail up to the specified epoch. Settlement may fail to reach the target epoch if either the client lacks the funds to pay up to the current epoch or the validator refuses to settle the entire requested range.
-    /// @notice In the call to this function, the caller must include NETWORK_FEE amount of native token as a fee.
+    /// @notice The caller must include NETWORK_FEE amount of native token as a fee.
     /// @param railId The ID of the rail to settle.
     /// @param untilEpoch The epoch up to which to settle (must not exceed current block number).
     /// @return totalSettledAmount The total amount settled and transferred.
@@ -1189,9 +1187,6 @@ contract Payments is ReentrancyGuard {
             string memory note
         )
     {
-        if (NETWORK_FEE > 0) {
-            burnAndRefundRest(NETWORK_FEE);
-        }
         return settleRailInternal(railId, untilEpoch, false);
     }
 
@@ -1205,6 +1200,9 @@ contract Payments is ReentrancyGuard {
             string memory note
         )
     {
+        if (NETWORK_FEE > 0) {
+            burnAndRefundRest(NETWORK_FEE);
+        }
         require(untilEpoch <= block.number, Errors.CannotSettleFutureEpochs(railId, untilEpoch, block.number));
 
         Rail storage rail = rails[railId];
