@@ -265,6 +265,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
      * @dev Test for RailFinalized event
      */
     function testRailFinalizedEvent() public {
+        uint256 networkFee = payments.NETWORK_FEE();
         // Create and set up a rail
         railId = helper.createRail(USER1, USER2, OPERATOR, address(0), SERVICE_FEE_RECIPIENT);
 
@@ -291,7 +292,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         emit Payments.RailFinalized(railId);
 
         // Settle terminated rail to trigger finalization
-        payments.settleTerminatedRailWithoutValidation(railId);
+        payments.settleTerminatedRailWithoutValidation{value: networkFee}(railId);
 
         vm.stopPrank();
     }

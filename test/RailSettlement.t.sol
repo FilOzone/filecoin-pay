@@ -428,6 +428,44 @@ contract RailSettlementTest is Test, BaseTestHelper {
         assertEq(userAfter.lockupRate, 0, "Account lockup rate should be zero after full rail settlement");
     }
 
+    function testSettleTerminatedWithoutValidationFees() public {
+        uint256 networkFee = payments.NETWORK_FEE();
+        // Create and set up a rail
+
+        uint256 railId = helper.setupRailWithParameters(
+            USER1,
+            USER2,
+            OPERATOR,
+            3 ether,
+            10, // lockupPeriod
+            0, // No fixed lockup
+            address(0), // No validator
+            SERVICE_FEE_RECIPIENT // operator commision receiver
+        );
+
+        vm.startPrank(OPERATOR);
+        payments.modifyRailPayment(railId, 1 ether, 0);
+        payments.modifyRailLockup(railId, 10, 10 ether);
+        vm.stopPrank();
+
+        // Terminate the rail
+        vm.startPrank(USER1);
+        payments.terminateRail(railId);
+        vm.stopPrank();
+
+        // Get the rail to check its end epoch
+        Payments.RailView memory rail = payments.getRail(railId);
+
+        // Advance blocks past the end epoch
+        helper.advanceBlocks(rail.lockupPeriod + 1);
+
+        vm.startPrank(USER1);
+        // Settle terminated rail to trigger finalization
+        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientNativeTokenForBurn.selector, networkFee, 0));
+        payments.settleTerminatedRailWithoutValidation(railId);
+        vm.stopPrank();
+    }
+
     function testSettleAlreadyFullySettledRail() public {
         // Create a rail with standard rate
         uint256 rate = 5 ether;
@@ -837,7 +875,7 @@ contract RailSettlementTest is Test, BaseTestHelper {
             SERVICE_FEE_RECIPIENT // operator commision receiver
         );
 
-        /* 
+        /*
         |  rate == 1 | rate == 0 | rate == 1 |
         | 100 blocks | 100 blocks | 100 blocks |
                           X^                  Y^
