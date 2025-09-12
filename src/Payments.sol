@@ -363,16 +363,16 @@ contract Payments is ReentrancyGuard {
         uint256 rateAllowanceIncrease,
         uint256 lockupAllowanceIncrease
     ) external nonReentrant validateNonZeroAddress(operator, "operator") {
-        _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
+        _increaseOperatorApproval(IERC20(token), operator, rateAllowanceIncrease, lockupAllowanceIncrease);
     }
 
     function _increaseOperatorApproval(
-        address token,
+        IERC20 token,
         address operator,
         uint256 rateAllowanceIncrease,
         uint256 lockupAllowanceIncrease
     ) internal {
-        OperatorApproval storage approval = operatorApprovals[token][msg.sender][operator];
+        OperatorApproval storage approval = operatorApprovals[address(token)][msg.sender][operator];
 
         // Operator must already be approved
         require(approval.isApproved, Errors.OperatorNotApproved(msg.sender, operator));
@@ -382,7 +382,7 @@ contract Payments is ReentrancyGuard {
         approval.lockupAllowance += lockupAllowanceIncrease;
 
         emit OperatorApprovalUpdated(
-            token,
+            address(token),
             msg.sender,
             operator,
             approval.isApproved,
@@ -601,7 +601,7 @@ contract Payments is ReentrancyGuard {
         validateSignerIsRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
-        _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
+        _increaseOperatorApproval(IERC20(token), operator, rateAllowanceIncrease, lockupAllowanceIncrease);
         _depositWithPermit(token, to, amount, deadline, v, r, s);
     }
 
@@ -716,7 +716,7 @@ contract Payments is ReentrancyGuard {
         validateSignerIsRecipient(to)
         settleAccountLockupBeforeAndAfter(address(token), to, false)
     {
-        _increaseOperatorApproval(address(token), operator, rateAllowanceIncrease, lockupAllowanceIncrease);
+        _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
         _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 
