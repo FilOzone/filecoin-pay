@@ -53,7 +53,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Build signature
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
             fromPrivateKey,
-            address(testToken),
+            testToken,
             from,
             address(payments), // receiveWithAuthorization pays to Payments contract
             amount,
@@ -86,7 +86,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         );
 
         // Verify authorization is consumed on the token
-        bool used = IERC3009(address(testToken)).authorizationState(from, nonce);
+        bool used = testToken.authorizationState(from, nonce);
         assertTrue(used);
     }
 
@@ -102,7 +102,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            fromPrivateKey, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            fromPrivateKey, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         vm.startPrank(from);
@@ -123,7 +123,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Generate signature with a different private key
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user2Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user2Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         vm.startPrank(from);
@@ -141,7 +141,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         // Corrupt r
@@ -162,7 +162,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         // advance beyond validBefore
@@ -188,7 +188,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         Payments.Account memory toAccountBefore = helper._getAccountData(to, false);
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         vm.startPrank(from);
@@ -217,7 +217,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         );
 
         // Verify authorization is consumed on the token
-        bool used = IERC3009(address(testToken)).authorizationState(from, nonce);
+        bool used = testToken.authorizationState(from, nonce);
         assertTrue(used);
     }
 
@@ -230,7 +230,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         // Pre-state capture
@@ -261,7 +261,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         );
 
         // Verify authorization is consumed on the token
-        bool used = IERC3009(address(testToken)).authorizationState(from, nonce);
+        bool used = testToken.authorizationState(from, nonce);
         assertTrue(used);
     }
 
@@ -282,7 +282,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Sign against otherToken domain
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(otherToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user1Sk, otherToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         vm.startPrank(from);

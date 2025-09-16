@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.27;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import {Test} from "forge-std/Test.sol";
 import {Payments} from "../src/Payments.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -53,7 +55,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         // For token2
         vm.startPrank(USER1);
         token2.approve(address(payments), type(uint256).max);
-        payments.deposit(address(token2), USER1, DEPOSIT_AMOUNT);
+        payments.deposit(token2, USER1, DEPOSIT_AMOUNT);
         vm.stopPrank();
 
         // Setup operator approvals
@@ -68,7 +70,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         // Setup approval for token2
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(token2),
+            token2,
             OPERATOR,
             true, // approved
             10 ether, // rate allowance
@@ -121,7 +123,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         // Rail 4: With token2 and USER2 as payee
         vm.startPrank(OPERATOR);
         rail4Id = payments.createRail(
-            address(token2),
+            token2,
             USER1, // from
             USER2, // to (payee)
             address(0), // no validator
@@ -151,7 +153,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
 
     function testGetRailsForPayeeAndToken() public view {
         // Test getting all rails for USER2 and token1 (should include terminated)
-        Payments.RailInfo[] memory rails = payments.getRailsForPayeeAndToken(USER2, address(token));
+        Payments.RailInfo[] memory rails = payments.getRailsForPayeeAndToken(USER2, token);
 
         // Should include 3 rails: rail1Id, rail2Id, and rail3Id (terminated)
         assertEq(rails.length, 3, "Should have 3 rails for USER2 with token1");
@@ -182,14 +184,14 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         assertTrue(foundRail3, "Rail 3 not found");
 
         // Test different token (should only return rails for that token)
-        Payments.RailInfo[] memory token2Rails = payments.getRailsForPayeeAndToken(USER2, address(token2));
+        Payments.RailInfo[] memory token2Rails = payments.getRailsForPayeeAndToken(USER2, token2);
 
         // Should include only 1 rail with token2: rail4Id
         assertEq(token2Rails.length, 1, "Should have 1 rail for USER2 with token2");
         assertEq(token2Rails[0].railId, rail4Id, "Rail ID should match rail4Id");
 
         // Test different payee (should only return rails for that payee)
-        Payments.RailInfo[] memory user3Rails = payments.getRailsForPayeeAndToken(USER3, address(token));
+        Payments.RailInfo[] memory user3Rails = payments.getRailsForPayeeAndToken(USER3, token);
 
         // Should include only 1 rail for USER3: rail5Id
         assertEq(user3Rails.length, 1, "Should have 1 rail for USER3 with token1");
@@ -198,7 +200,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
 
     function testGetRailsForPayerAndToken() public view {
         // Test getting all rails for USER1 (payer) and token1 (should include terminated)
-        Payments.RailInfo[] memory rails = payments.getRailsForPayerAndToken(USER1, address(token));
+        Payments.RailInfo[] memory rails = payments.getRailsForPayerAndToken(USER1, token);
 
         // Should include 4 rails: rail1Id, rail2Id, rail3Id (terminated), and rail5Id
         assertEq(rails.length, 4, "Should have 4 rails for USER1 with token1");
@@ -235,7 +237,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         assertTrue(foundRail5, "Rail 5 not found");
 
         // Test different token (should only return rails for that token)
-        Payments.RailInfo[] memory token2Rails = payments.getRailsForPayerAndToken(USER1, address(token2));
+        Payments.RailInfo[] memory token2Rails = payments.getRailsForPayerAndToken(USER1, token2);
 
         // Should include only 1 rail with token2: rail4Id
         assertEq(token2Rails.length, 1, "Should have 1 rail for USER1 with token2");
@@ -245,8 +247,8 @@ contract PayeeRailsTest is Test, BaseTestHelper {
     function testRailsBeyondEndEpoch() public {
         uint256 networkFee = payments.NETWORK_FEE();
         // Get the initial rails when Rail 3 is terminated but not beyond its end epoch
-        Payments.RailInfo[] memory initialPayeeRails = payments.getRailsForPayeeAndToken(USER2, address(token));
-        Payments.RailInfo[] memory initialPayerRails = payments.getRailsForPayerAndToken(USER1, address(token));
+        Payments.RailInfo[] memory initialPayeeRails = payments.getRailsForPayeeAndToken(USER2, token);
+        Payments.RailInfo[] memory initialPayerRails = payments.getRailsForPayerAndToken(USER1, token);
 
         // Should include all 3 rails for payee
         assertEq(initialPayeeRails.length, 3, "Should have 3 rails initially for payee");
@@ -272,8 +274,8 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         payments.settleRail{value: networkFee}(rail3Id, endEpoch);
 
         // Get rails again for both payee and payer
-        Payments.RailInfo[] memory finalPayeeRails = payments.getRailsForPayeeAndToken(USER2, address(token));
-        Payments.RailInfo[] memory finalPayerRails = payments.getRailsForPayerAndToken(USER1, address(token));
+        Payments.RailInfo[] memory finalPayeeRails = payments.getRailsForPayeeAndToken(USER2, token);
+        Payments.RailInfo[] memory finalPayerRails = payments.getRailsForPayerAndToken(USER1, token);
 
         // Should include only 2 rails now for payee, as Rail 3 is beyond its end epoch
         assertEq(finalPayeeRails.length, 2, "Should have 2 rails for payee after advancing beyond end epoch");
@@ -306,19 +308,19 @@ contract PayeeRailsTest is Test, BaseTestHelper {
 
     function testEmptyResult() public view {
         // Test non-existent payee
-        Payments.RailInfo[] memory nonExistentPayee = payments.getRailsForPayeeAndToken(address(0x123), address(token));
+        Payments.RailInfo[] memory nonExistentPayee = payments.getRailsForPayeeAndToken(address(0x123), token);
         assertEq(nonExistentPayee.length, 0, "Should return empty array for non-existent payee");
 
         // Test non-existent payer
-        Payments.RailInfo[] memory nonExistentPayer = payments.getRailsForPayerAndToken(address(0x123), address(token));
+        Payments.RailInfo[] memory nonExistentPayer = payments.getRailsForPayerAndToken(address(0x123), token);
         assertEq(nonExistentPayer.length, 0, "Should return empty array for non-existent payer");
 
         // Test non-existent token for payee
-        Payments.RailInfo[] memory nonExistentTokenForPayee = payments.getRailsForPayeeAndToken(USER2, address(0x456));
+        Payments.RailInfo[] memory nonExistentTokenForPayee = payments.getRailsForPayeeAndToken(USER2, IERC20(address(0x456)));
         assertEq(nonExistentTokenForPayee.length, 0, "Should return empty array for non-existent token with payee");
 
         // Test non-existent token for payer
-        Payments.RailInfo[] memory nonExistentTokenForPayer = payments.getRailsForPayerAndToken(USER1, address(0x456));
+        Payments.RailInfo[] memory nonExistentTokenForPayer = payments.getRailsForPayerAndToken(USER1, IERC20(address(0x456)));
         assertEq(nonExistentTokenForPayer.length, 0, "Should return empty array for non-existent token with payer");
     }
 }

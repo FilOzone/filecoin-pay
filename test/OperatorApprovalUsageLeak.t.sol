@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.27;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {Payments} from "../src/Payments.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -12,7 +13,7 @@ import {console} from "forge-std/console.sol";
 contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;
     Payments payments;
-    address testToken;
+    IERC20 testToken;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 ether;
     uint256 constant RATE_ALLOWANCE = 200 ether;
@@ -23,7 +24,7 @@ contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
         helper = new PaymentsTestHelpers();
         helper.setupStandardTestEnvironment();
         payments = helper.payments();
-        testToken = address(helper.testToken());
+        testToken = helper.testToken();
 
         // Deposit funds for client
         helper.makeDeposit(USER1, USER1, DEPOSIT_AMOUNT);
@@ -65,7 +66,7 @@ contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
         vm.stopPrank();
 
         // Get the account's lockup settled epoch
-        (,,, uint256 lockupLastSettledAt) = payments.accounts(address(testToken), USER1);
+        (,,, uint256 lockupLastSettledAt) = payments.accounts(testToken, USER1);
 
         // Calculate the rail's end epoch
         uint256 endEpoch = lockupLastSettledAt + lockupPeriod;
@@ -93,7 +94,7 @@ contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
 
         // Check operator lockup usage after finalization
         (,,, uint256 rateUsageAfter, uint256 lockupUsageAfter,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
 
         console.log("\nFinal operator usage:");
         console.log("  Rate usage:", rateUsageAfter);
@@ -133,7 +134,7 @@ contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
             vm.stopPrank();
 
             // Get end epoch
-            (,,, uint256 lockupLastSettledAt) = payments.accounts(address(testToken), USER1);
+            (,,, uint256 lockupLastSettledAt) = payments.accounts(testToken, USER1);
             uint256 endEpoch = lockupLastSettledAt + lockupPeriod;
 
             // Move time forward
@@ -152,7 +153,7 @@ contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
         }
 
         // Check final operator lockup usage
-        (,,,, uint256 finalLockupUsage,) = payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+        (,,,, uint256 finalLockupUsage,) = payments.operatorApprovals(testToken, USER1, OPERATOR);
 
         console.log("\n=== FINAL OPERATOR USAGE ===");
         console.log("Final operator lockup usage:", finalLockupUsage);

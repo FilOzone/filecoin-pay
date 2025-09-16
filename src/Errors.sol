@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /// @title Errors
 /// @notice Centralized library for custom error definitions across the protocol
 /// @dev Convention: For any error comparing two values, always pass the expected value first, followed by the actual value
@@ -109,7 +111,7 @@ library Errors {
     /// @param token The token involved in the lockup
     /// @param currentLockup The payer's current lockup amount
     /// @param lockupReduction The reduction attempted to be made
-    error InsufficientCurrentLockup(address from, address token, uint256 currentLockup, uint256 lockupReduction);
+    error InsufficientCurrentLockup(IERC20 token, address from, uint256 currentLockup, uint256 lockupReduction);
 
     /// @notice Cannot change the lockup period due to insufficient funds to cover the current lockup
     /// @param token The token for the lockup
@@ -117,7 +119,7 @@ library Errors {
     /// @param actualLockupPeriod The current rail lockup period
     /// @param attemptedLockupPeriod The new period requested
     error LockupPeriodChangeNotAllowedDueToInsufficientFunds(
-        address token, address from, uint256 actualLockupPeriod, uint256 attemptedLockupPeriod
+        IERC20 token, address from, uint256 actualLockupPeriod, uint256 attemptedLockupPeriod
     );
 
     /// @notice Cannot increase the fixed lockup due to insufficient funds to cover the current lockup
@@ -126,7 +128,7 @@ library Errors {
     /// @param actualLockupFixed The current rail fixed lockup amount
     /// @param attemptedLockupFixed The new fixed lockup amount requested
     error LockupFixedIncreaseNotAllowedDueToInsufficientFunds(
-        address token, address from, uint256 actualLockupFixed, uint256 attemptedLockupFixed
+        IERC20 token, address from, uint256 actualLockupFixed, uint256 attemptedLockupFixed
     );
 
     /// @notice The requested lockup period exceeds the operator's maximum allowed lockup period
@@ -135,7 +137,7 @@ library Errors {
     /// @param maxAllowedPeriod The operator's maximum allowed lockup period
     /// @param requestedPeriod The lockup period requested
     error LockupPeriodExceedsOperatorMaximum(
-        address token, address operator, uint256 maxAllowedPeriod, uint256 requestedPeriod
+        IERC20 token, address operator, uint256 maxAllowedPeriod, uint256 requestedPeriod
     );
 
     /// @notice The payer's current lockup is less than the old lockup value
@@ -143,7 +145,7 @@ library Errors {
     /// @param from The address whose account is checked
     /// @param oldLockup The calculated old lockup amount
     /// @param currentLockup The current lockup value in the account
-    error CurrentLockupLessThanOldLockup(address token, address from, uint256 oldLockup, uint256 currentLockup);
+    error CurrentLockupLessThanOldLockup(IERC20 token, address from, uint256 oldLockup, uint256 currentLockup);
 
     /// @notice Cannot modify a terminated rail beyond its end epoch
     /// @param railId The ID of the rail
@@ -177,7 +179,7 @@ library Errors {
     /// @param from The payer's address
     /// @param required The amount required (oneTimePayment)
     /// @param actual The actual funds available in the payer's account
-    error InsufficientFundsForOneTimePayment(address token, address from, uint256 required, uint256 actual);
+    error InsufficientFundsForOneTimePayment(IERC20 token, address from, uint256 required, uint256 actual);
 
     /// @notice Cannot settle a terminated rail without validation until after the max settlement epoch has passed
     /// @param railId The ID of the rail being settled
@@ -208,7 +210,7 @@ library Errors {
     /// @param expectedLockup The expected minimum lockup amount (rail.lockupFixed)
     /// @param actualLockup The actual current lockup in the payer's account (payer.lockupCurrent)
     error LockupInconsistencyDuringRailFinalization(
-        uint256 railId, address token, address from, uint256 expectedLockup, uint256 actualLockup
+        uint256 railId, IERC20 token, address from, uint256 expectedLockup, uint256 actualLockup
     );
 
     /// @notice The next rate change in the queue is scheduled before the current processed epoch, indicating an invalid state.
@@ -239,14 +241,14 @@ library Errors {
     /// @param from The address of the account being checked
     /// @param available The actual funds available in the account
     /// @param required The amount required for settlement
-    error InsufficientFundsForSettlement(address token, address from, uint256 available, uint256 required);
+    error InsufficientFundsForSettlement(IERC20 token, address from, uint256 available, uint256 required);
 
     /// @notice The payer does not have enough lockup to cover the required settlement amount
     /// @param token The token used for the settlement
     /// @param from The payer address being checked
     /// @param available The actual lockup available in the account
     /// @param required The required lockup amount for the settlement
-    error InsufficientLockupForSettlement(address token, address from, uint256 available, uint256 required);
+    error InsufficientLockupForSettlement(IERC20 token, address from, uint256 available, uint256 required);
 
     /// @notice Invariant violation: The payer's lockup exceeds their available funds after settlement
     /// @dev Indicates a critical accounting bug or logic error in the settlement process.
@@ -254,7 +256,7 @@ library Errors {
     /// @param account The address whose lockup is being checked
     /// @param lockupCurrent The current lockup amount
     /// @param fundsCurrent The current funds available
-    error LockupExceedsFundsInvariant(address token, address account, uint256 lockupCurrent, uint256 fundsCurrent);
+    error LockupExceedsFundsInvariant(IERC20 token, address account, uint256 lockupCurrent, uint256 fundsCurrent);
 
     /// @notice The rate change queue must be empty after full settlement, but it's not
     /// @param nextUntilEpoch The untilEpoch value of the next queued rate change (tail of the queue)
@@ -274,7 +276,7 @@ library Errors {
     /// @param token The token address
     /// @param available The current accumulated fees
     /// @param requested The amount attempted to withdraw
-    error WithdrawAmountExceedsAccumulatedFees(address token, uint256 available, uint256 requested);
+    error WithdrawAmountExceedsAccumulatedFees(IERC20 token, uint256 available, uint256 requested);
 
     /// @notice Native token transfer failed during fee withdrawal
     /// @param to The recipient address

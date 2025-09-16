@@ -672,7 +672,7 @@ contract RailSettlementTest is Test, BaseTestHelper {
         uint256 railId;
         vm.startPrank(OPERATOR);
         railId = payments.createRail(
-            address(token),
+            token,
             USER1,
             USER2,
             address(0), // no validator

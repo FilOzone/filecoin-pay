@@ -60,7 +60,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Build signature with wrong private key
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user2Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user2Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         vm.startPrank(from);
@@ -94,7 +94,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         // Corrupt r
@@ -128,7 +128,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         // advance beyond validBefore
@@ -162,7 +162,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         vm.startPrank(from);
@@ -193,7 +193,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         // Attempt to submit as a different user
@@ -232,7 +232,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Step 2: Verify initial approval state
         (bool isApproved, uint256 initialRateAllowance, uint256 initialLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(isApproved, true);
         assertEq(initialRateAllowance, RATE_ALLOWANCE);
         assertEq(initialLockupAllowance, LOCKUP_ALLOWANCE);
@@ -250,11 +250,11 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, additionalDeposit, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), additionalDeposit, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), additionalDeposit, validAfter, validBefore, nonce
         );
 
         // Record initial account state
-        (uint256 initialFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 initialFunds,,,) = payments.accounts(testToken, USER1);
 
         // Step 4: Execute depositWithAuthorizationAndIncreaseOperatorApproval
         vm.startPrank(USER1);
@@ -277,12 +277,12 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Step 5: Verify results
         // Check deposit was successful
-        (uint256 finalFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 finalFunds,,,) = payments.accounts(testToken, USER1);
         assertEq(finalFunds, initialFunds + additionalDeposit);
 
         // Check operator approval was increased
         (, uint256 finalRateAllowance, uint256 finalLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(finalRateAllowance, initialRateAllowance + rateIncrease);
         assertEq(finalLockupAllowance, initialLockupAllowance + lockupIncrease);
     }
@@ -301,7 +301,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Step 2: Verify initial approval state
         (bool isApproved, uint256 initialRateAllowance, uint256 initialLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(isApproved, true);
         assertEq(initialRateAllowance, RATE_ALLOWANCE);
         assertEq(initialLockupAllowance, LOCKUP_ALLOWANCE);
@@ -319,11 +319,11 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, additionalDeposit, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), additionalDeposit, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), additionalDeposit, validAfter, validBefore, nonce
         );
 
         // Record initial account state
-        (uint256 initialFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 initialFunds,,,) = payments.accounts(testToken, USER1);
 
         // Step 4: Execute depositWithAuthorizationAndIncreaseOperatorApproval
         vm.startPrank(USER1);
@@ -346,11 +346,11 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Step 5: Verify results
         // Check deposit was successful
-        (uint256 finalFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 finalFunds,,,) = payments.accounts(testToken, USER1);
         assertEq(finalFunds, initialFunds + additionalDeposit);
 
         (, uint256 finalRateAllowance, uint256 finalLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(finalRateAllowance, initialRateAllowance); // No change
         assertEq(finalLockupAllowance, initialLockupAllowance); // No change
     }
@@ -369,7 +369,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Verify initial approval state
         (bool isApproved, uint256 initialRateAllowance, uint256 initialLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(isApproved, true);
         assertEq(initialRateAllowance, RATE_ALLOWANCE);
         assertEq(initialLockupAllowance, LOCKUP_ALLOWANCE);
@@ -388,7 +388,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Create invalid permit signature (wrong private key)
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user2Sk, address(testToken), from, address(payments), additionalDeposit, validAfter, validBefore, nonce
+            user2Sk, testToken, from, address(payments), additionalDeposit, validAfter, validBefore, nonce
         );
 
         vm.startPrank(USER1);
@@ -410,7 +410,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         vm.stopPrank();
 
         (, uint256 finalRateAllowance, uint256 finalLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(finalRateAllowance, initialRateAllowance); // No change
         assertEq(finalLockupAllowance, initialLockupAllowance); // No change
     }
@@ -439,7 +439,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Verify some allowance is used
         (, uint256 preRateAllowance, uint256 preLockupAllowance, uint256 preRateUsage, uint256 preLockupUsage,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(preRateUsage, paymentRate);
         assertEq(preLockupUsage, lockupFixed);
 
@@ -455,10 +455,10 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, additionalDeposit, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), additionalDeposit, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), additionalDeposit, validAfter, validBefore, nonce
         );
 
-        (uint256 initialFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 initialFunds,,,) = payments.accounts(testToken, USER1);
 
         // Execute increase with existing usage
         vm.startPrank(USER1);
@@ -479,11 +479,11 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         vm.stopPrank();
 
         // Verify results
-        (uint256 finalFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 finalFunds,,,) = payments.accounts(testToken, USER1);
         assertEq(finalFunds, initialFunds + additionalDeposit);
 
         (, uint256 finalRateAllowance, uint256 finalLockupAllowance, uint256 finalRateUsage, uint256 finalLockupUsage,)
-        = payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+        = payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(finalRateAllowance, preRateAllowance + rateIncrease);
         assertEq(finalLockupAllowance, preLockupAllowance + lockupIncrease);
         assertEq(finalRateUsage, preRateUsage); // Usage unchanged
@@ -499,7 +499,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         bytes32 nonce = keccak256(abi.encodePacked("auth-nonce", from, to, amount, block.number));
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
-            user1Sk, address(testToken), from, address(payments), amount, validAfter, validBefore, nonce
+            user1Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
         );
 
         // First establish initial operator approval with deposit
@@ -509,7 +509,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
 
         // Verify initial approval state
         (bool isApproved, uint256 initialRateAllowance, uint256 initialLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(isApproved, true);
         assertEq(initialRateAllowance, RATE_ALLOWANCE);
         assertEq(initialLockupAllowance, LOCKUP_ALLOWANCE);

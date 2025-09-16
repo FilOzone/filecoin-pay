@@ -43,17 +43,18 @@ contract Payments is ReentrancyGuard {
 
     uint256 public constant NETWORK_FEE = 1300000 gwei; // equivalent to 1300000 nanoFIL / 0.0013 FIL
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
+    IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
 
     // Events
     event AccountLockupSettled(
-        address indexed token,
+        IERC20 indexed token,
         address indexed owner,
         uint256 lockupCurrent,
         uint256 lockupRate,
         uint256 lockupLastSettledAt
     );
     event OperatorApprovalUpdated(
-        address indexed token,
+        IERC20 indexed token,
         address indexed client,
         address indexed operator,
         bool approved,
@@ -66,7 +67,7 @@ contract Payments is ReentrancyGuard {
         uint256 indexed railId,
         address indexed payer,
         address indexed payee,
-        address token,
+        IERC20 token,
         address operator,
         address validator,
         address serviceFeeRecipient,
@@ -91,8 +92,8 @@ contract Payments is ReentrancyGuard {
     event RailTerminated(uint256 indexed railId, address indexed by, uint256 endEpoch);
     event RailFinalized(uint256 indexed railId);
 
-    event DepositRecorded(address indexed token, address indexed from, address indexed to, uint256 amount);
-    event WithdrawRecorded(address indexed token, address indexed from, address indexed to, uint256 amount);
+    event DepositRecorded(IERC20 indexed token, address indexed from, address indexed to, uint256 amount);
+    event WithdrawRecorded(IERC20 indexed token, address indexed from, address indexed to, uint256 amount);
 
     struct Account {
         uint256 funds;
@@ -103,7 +104,7 @@ contract Payments is ReentrancyGuard {
     }
 
     struct Rail {
-        address token;
+        IERC20 token;
         address from;
         address to;
         address operator;
@@ -133,14 +134,14 @@ contract Payments is ReentrancyGuard {
     uint256 private _nextRailId = 1;
 
     // token => owner => Account
-    mapping(address => mapping(address => Account)) public accounts;
+    mapping(IERC20 token => mapping(address owner => Account)) public accounts;
 
     // railId => Rail
-    mapping(uint256 => Rail) internal rails;
+    mapping(uint256 railId => Rail) internal rails;
 
     // Struct to hold rail data without the RateChangeQueue (for external returns)
     struct RailView {
-        address token;
+        IERC20 token;
         address from;
         address to;
         address operator;
@@ -156,7 +157,7 @@ contract Payments is ReentrancyGuard {
     }
 
     // token => client => operator => Approval
-    mapping(address => mapping(address => mapping(address => OperatorApproval))) public operatorApprovals;
+    mapping(IERC20 token => mapping(address client => mapping(address operator => OperatorApproval))) public operatorApprovals;
 
     // Define a struct for rails by payee information
     struct RailInfo {
@@ -166,10 +167,10 @@ contract Payments is ReentrancyGuard {
     }
 
     // token => payee => array of railIds
-    mapping(address => mapping(address => uint256[])) private payeeRails;
+    mapping(IERC20 token => mapping(address payee => uint256[])) private payeeRails;
 
     // token => payer => array of railIds
-    mapping(address => mapping(address => uint256[])) private payerRails;
+    mapping(IERC20 token => mapping(address payer => uint256[])) private payerRails;
 
     struct SettlementState {
         uint256 totalSettledAmount;
@@ -228,7 +229,7 @@ contract Payments is ReentrancyGuard {
         _;
     }
 
-    modifier settleAccountLockupBeforeAndAfter(address token, address owner, bool settleFull) {
+    modifier settleAccountLockupBeforeAndAfter(IERC20 token, address owner, bool settleFull) {
         Account storage payer = accounts[token][owner];
 
         // Before function execution
@@ -263,7 +264,7 @@ contract Payments is ReentrancyGuard {
         performSettlementCheck(rail.token, rail.from, payer, settleFull, false);
     }
 
-    function performSettlementCheck(address token, address owner, Account storage payer, bool settleFull, bool isBefore)
+    function performSettlementCheck(IERC20 token, address owner, Account storage payer, bool settleFull, bool isBefore)
         internal
     {
         require(
@@ -320,7 +321,7 @@ contract Payments is ReentrancyGuard {
     /// @param lockupAllowance The maximum amount of funds the operator can lock up on behalf of the message sender towards future payments. If this exceeds the current total amount of funds locked towards future payments, the operator will only be able to reduce future lockup.
     /// @param maxLockupPeriod The maximum number of epochs (blocks) the operator can lock funds for. If this is less than the current lockup period for a rail, the operator will only be able to reduce the lockup period.
     function setOperatorApproval(
-        address token,
+        IERC20 token,
         address operator,
         bool approved,
         uint256 rateAllowance,
@@ -331,7 +332,7 @@ contract Payments is ReentrancyGuard {
     }
 
     function _setOperatorApproval(
-        address token,
+        IERC20 token,
         address operator,
         bool approved,
         uint256 rateAllowance,
@@ -358,7 +359,7 @@ contract Payments is ReentrancyGuard {
     /// @param lockupAllowanceIncrease The amount to increase the lockup allowance by.
     /// @custom:constraint Operator must already be approved.
     function increaseOperatorApproval(
-        address token,
+        IERC20 token,
         address operator,
         uint256 rateAllowanceIncrease,
         uint256 lockupAllowanceIncrease
@@ -372,7 +373,7 @@ contract Payments is ReentrancyGuard {
         uint256 rateAllowanceIncrease,
         uint256 lockupAllowanceIncrease
     ) internal {
-        OperatorApproval storage approval = operatorApprovals[address(token)][msg.sender][operator];
+        OperatorApproval storage approval = operatorApprovals[token][msg.sender][operator];
 
         // Operator must already be approved
         require(approval.isApproved, Errors.OperatorNotApproved(msg.sender, operator));
@@ -382,7 +383,7 @@ contract Payments is ReentrancyGuard {
         approval.lockupAllowance += lockupAllowanceIncrease;
 
         emit OperatorApprovalUpdated(
-            address(token),
+            token,
             msg.sender,
             operator,
             approval.isApproved,
@@ -444,7 +445,7 @@ contract Payments is ReentrancyGuard {
     /// @param to The address whose account will be credited.
     /// @param amount The amount of tokens to deposit.
     /// @custom:constraint The message sender must have approved this contract to spend the requested amount via the ERC-20 token (`token`).
-    function deposit(address token, address to, uint256 amount)
+    function deposit(IERC20 token, address to, uint256 amount)
         external
         payable
         nonReentrant
@@ -457,7 +458,7 @@ contract Payments is ReentrancyGuard {
         uint256 actualAmount;
 
         // Transfer tokens from sender to contract
-        if (token == address(0)) {
+        if (token == NATIVE_TOKEN) {
             require(msg.value == amount, Errors.MustSendExactNativeAmount(amount, msg.value));
             actualAmount = amount;
         } else {
@@ -485,7 +486,7 @@ contract Payments is ReentrancyGuard {
      * @param v,r,s Permit signature.
      */
     function depositWithPermit(
-        address token,
+        IERC20 token,
         address to,
         uint256 amount,
         uint256 deadline,
@@ -497,7 +498,7 @@ contract Payments is ReentrancyGuard {
     }
 
     function _depositWithPermit(
-        address token,
+        IERC20 token,
         address to,
         uint256 amount,
         uint256 deadline,
@@ -506,7 +507,7 @@ contract Payments is ReentrancyGuard {
         bytes32 s
     ) internal {
         // Revert if token is address(0) as permit is not supported for native tokens
-        require(token != address(0), Errors.NativeTokenNotSupported());
+        require(token != NATIVE_TOKEN, Errors.NativeTokenNotSupported());
 
         // Use 'to' as the owner in permit call (the address that signed the permit)
         IERC20Permit(token).permit(to, address(this), amount, deadline, v, r, s);
@@ -545,7 +546,7 @@ contract Payments is ReentrancyGuard {
      *             the current lockup period for a rail, the operator will only be able to reduce the lockup period.
      */
     function depositWithPermitAndApproveOperator(
-        address token,
+        IERC20 token,
         address to,
         uint256 amount,
         uint256 deadline,
@@ -583,7 +584,7 @@ contract Payments is ReentrancyGuard {
      * @custom:constraint Operator must already be approved.
      */
     function depositWithPermitAndIncreaseOperatorApproval(
-        address token,
+        IERC20 token,
         address to,
         uint256 amount,
         uint256 deadline,
@@ -629,7 +630,7 @@ contract Payments is ReentrancyGuard {
         external
         nonReentrant
         validateNonZeroAddress(to, "to")
-        settleAccountLockupBeforeAndAfter(address(token), to, false)
+        settleAccountLockupBeforeAndAfter(token, to, false)
     {
         _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
     }
@@ -674,9 +675,9 @@ contract Payments is ReentrancyGuard {
         validateNonZeroAddress(operator, "operator")
         validateNonZeroAddress(to, "to")
         validateSignerIsRecipient(to)
-        settleAccountLockupBeforeAndAfter(address(token), to, false)
+        settleAccountLockupBeforeAndAfter(token, to, false)
     {
-        _setOperatorApproval(address(token), operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
+        _setOperatorApproval(token, operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
         _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 
@@ -714,7 +715,7 @@ contract Payments is ReentrancyGuard {
         validateNonZeroAddress(operator, "operator")
         validateNonZeroAddress(to, "to")
         validateSignerIsRecipient(to)
-        settleAccountLockupBeforeAndAfter(address(token), to, false)
+        settleAccountLockupBeforeAndAfter(token, to, false)
     {
         _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
         _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
@@ -732,7 +733,7 @@ contract Payments is ReentrancyGuard {
         bytes32 s
     ) internal {
         // Revert if token is address(0) as authorization is not supported for native tokens
-        require(address(token) != address(0), Errors.NativeTokenNotSupported());
+        require(token != NATIVE_TOKEN, Errors.NativeTokenNotSupported());
 
         // Use balance-before/balance-after accounting to correctly handle fee-on-transfer tokens
         uint256 balanceBefore = token.balanceOf(address(this));
@@ -746,17 +747,17 @@ contract Payments is ReentrancyGuard {
         uint256 actualAmount = balanceAfter - balanceBefore;
 
         // Credit the beneficiary's internal account
-        Account storage account = accounts[address(token)][to];
+        Account storage account = accounts[token][to];
         account.funds += actualAmount;
 
         // Emit an event to record the deposit, marking it as made via an off-chain signature.
-        emit DepositRecorded(address(token), to, to, actualAmount);
+        emit DepositRecorded(token, to, to, actualAmount);
     }
 
     /// @notice Withdraws tokens from the caller's account to the caller's account, up to the amount of currently available tokens (the tokens not currently locked in rails).
     /// @param token The ERC20 token address to withdraw.
     /// @param amount The amount of tokens to withdraw.
-    function withdraw(address token, uint256 amount)
+    function withdraw(IERC20 token, uint256 amount)
         external
         nonReentrant
         settleAccountLockupBeforeAndAfter(token, msg.sender, true)
@@ -768,7 +769,7 @@ contract Payments is ReentrancyGuard {
     /// @param token The ERC20 token address to withdraw.
     /// @param to The address to receive the withdrawn tokens.
     /// @param amount The amount of tokens to withdraw.
-    function withdrawTo(address token, address to, uint256 amount)
+    function withdrawTo(IERC20 token, address to, uint256 amount)
         external
         nonReentrant
         validateNonZeroAddress(to, "to")
@@ -777,12 +778,12 @@ contract Payments is ReentrancyGuard {
         return withdrawToInternal(token, to, amount);
     }
 
-    function withdrawToInternal(address token, address to, uint256 amount) internal {
+    function withdrawToInternal(IERC20 token, address to, uint256 amount) internal {
         Account storage account = accounts[token][msg.sender];
         uint256 available = account.funds - account.lockupCurrent;
         require(amount <= available, Errors.InsufficientUnlockedFunds(available, amount));
         account.funds -= amount;
-        if (token == address(0)) {
+        if (token == NATIVE_TOKEN) {
             (bool success,) = payable(to).call{value: amount}("");
             require(success, Errors.NativeTransferFailed(to, amount));
         } else {
@@ -802,7 +803,7 @@ contract Payments is ReentrancyGuard {
     /// @return The ID of the newly created rail.
     /// @custom:constraint Caller must be approved as an operator by the client (from address).
     function createRail(
-        address token,
+        IERC20 token,
         address from,
         address to,
         address validator,
@@ -1067,7 +1068,7 @@ contract Payments is ReentrancyGuard {
         }
     }
 
-    function calculateAndPayFees(uint256 amount, address token, address serviceFeeRecipient, uint256 commissionRateBps)
+    function calculateAndPayFees(uint256 amount, IERC20 token, address serviceFeeRecipient, uint256 commissionRateBps)
         internal
         returns (uint256 netPayeeAmount, uint256 operatorCommission)
     {
@@ -1514,7 +1515,7 @@ contract Payments is ReentrancyGuard {
 
     // attempts to settle account lockup up to and including the current epoch
     // returns the actual epoch upto and including which the lockup was settled
-    function settleAccountLockup(address token, address owner, Account storage account) internal returns (uint256) {
+    function settleAccountLockup(IERC20 token, address owner, Account storage account) internal returns (uint256) {
         uint256 currentEpoch = block.number;
         uint256 elapsedTime = currentEpoch - account.lockupLastSettledAt;
 
@@ -1604,7 +1605,7 @@ contract Payments is ReentrancyGuard {
             revert Errors.RateChangeQueueNotEmpty(rail.rateChangeQueue.peekTail().untilEpoch);
         }
 
-        rail.token = address(0);
+        rail.token = IERC20(address(0));
         rail.from = address(0); // This now marks the rail as inactive
         rail.to = address(0);
         rail.operator = address(0);
@@ -1668,7 +1669,7 @@ contract Payments is ReentrancyGuard {
      * @param token The token address to filter rails by.
      * @return Array of RailInfo structs containing rail IDs and termination status.
      */
-    function getRailsForPayerAndToken(address payer, address token) external view returns (RailInfo[] memory) {
+    function getRailsForPayerAndToken(address payer, IERC20 token) external view returns (RailInfo[] memory) {
         return _getRailsForAddressAndToken(payer, token, true);
     }
 
@@ -1678,7 +1679,7 @@ contract Payments is ReentrancyGuard {
      * @param token The token address to filter rails by.
      * @return Array of RailInfo structs containing rail IDs and termination status.
      */
-    function getRailsForPayeeAndToken(address payee, address token) external view returns (RailInfo[] memory) {
+    function getRailsForPayeeAndToken(address payee, IERC20 token) external view returns (RailInfo[] memory) {
         return _getRailsForAddressAndToken(payee, token, false);
     }
 
@@ -1689,7 +1690,7 @@ contract Payments is ReentrancyGuard {
      * @param isPayer If true, search for rails where addr is the payer, otherwise search for rails where addr is the payee.
      * @return Array of RailInfo structs containing rail IDs and termination status.
      */
-    function _getRailsForAddressAndToken(address addr, address token, bool isPayer)
+    function _getRailsForAddressAndToken(address addr, IERC20 token, bool isPayer)
         internal
         view
         returns (RailInfo[] memory)
@@ -1735,7 +1736,7 @@ contract Payments is ReentrancyGuard {
      * @return availableFunds The funds available after accounting for simulated lockup.
      * @return currentLockupRate The current lockup rate per epoch.
      */
-    function getAccountInfoIfSettled(address token, address owner)
+    function getAccountInfoIfSettled(IERC20 token, address owner)
         external
         view
         returns (uint256 fundedUntilEpoch, uint256 currentFunds, uint256 availableFunds, uint256 currentLockupRate)

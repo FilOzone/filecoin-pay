@@ -219,7 +219,7 @@ contract AccountLockupSettlementTest is Test, BaseTestHelper {
         // Try to set up a rail with lockup > funds which should fail
         vm.startPrank(OPERATOR);
         uint256 railId = payments.createRail(
-            address(helper.testToken()),
+            helper.testToken(),
             USER1,
             USER2,
             address(0),

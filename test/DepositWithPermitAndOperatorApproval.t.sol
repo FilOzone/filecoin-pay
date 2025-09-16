@@ -71,7 +71,7 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
         vm.startPrank(RELAYER);
         vm.expectRevert(abi.encodeWithSelector(Errors.SignerMustBeMsgSender.selector, RELAYER, from));
         payments.depositWithPermitAndApproveOperator(
-            address(testToken),
+            testToken,
             from,
             DEPOSIT_AMOUNT,
             deadline,
@@ -96,7 +96,7 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
 
         // Step 2: Verify initial approval state
         (bool isApproved, uint256 initialRateAllowance, uint256 initialLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(isApproved, true);
         assertEq(initialRateAllowance, RATE_ALLOWANCE);
         assertEq(initialLockupAllowance, LOCKUP_ALLOWANCE);
@@ -115,23 +115,23 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
             helper.getPermitSignature(user1Sk, USER1, address(payments), additionalDeposit, deadline);
 
         // Record initial account state
-        (uint256 initialFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 initialFunds,,,) = payments.accounts(testToken, USER1);
 
         // Step 4: Execute depositWithPermitAndIncreaseOperatorApproval
         vm.startPrank(USER1);
         payments.depositWithPermitAndIncreaseOperatorApproval(
-            address(testToken), USER1, additionalDeposit, deadline, v, r, s, OPERATOR, rateIncrease, lockupIncrease
+            testToken, USER1, additionalDeposit, deadline, v, r, s, OPERATOR, rateIncrease, lockupIncrease
         );
         vm.stopPrank();
 
         // Step 5: Verify results
         // Check deposit was successful
-        (uint256 finalFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 finalFunds,,,) = payments.accounts(testToken, USER1);
         assertEq(finalFunds, initialFunds + additionalDeposit);
 
         // Check operator approval was increased
         (, uint256 finalRateAllowance, uint256 finalLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(finalRateAllowance, initialRateAllowance + rateIncrease);
         assertEq(finalLockupAllowance, initialLockupAllowance + lockupIncrease);
     }
@@ -144,7 +144,7 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
 
         // Verify initial approval state
         (bool isApproved, uint256 initialRateAllowance, uint256 initialLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(isApproved, true);
         assertEq(initialRateAllowance, RATE_ALLOWANCE);
         assertEq(initialLockupAllowance, LOCKUP_ALLOWANCE);
@@ -157,12 +157,12 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
         (uint8 v, bytes32 r, bytes32 s) =
             helper.getPermitSignature(user1Sk, USER1, address(payments), additionalDeposit, deadline);
 
-        (uint256 initialFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 initialFunds,,,) = payments.accounts(testToken, USER1);
 
         // Execute with zero increases
         vm.startPrank(USER1);
         payments.depositWithPermitAndIncreaseOperatorApproval(
-            address(testToken),
+            testToken,
             USER1,
             additionalDeposit,
             deadline,
@@ -176,11 +176,11 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
         vm.stopPrank();
 
         // Verify deposit occurred but allowances unchanged
-        (uint256 finalFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 finalFunds,,,) = payments.accounts(testToken, USER1);
         assertEq(finalFunds, initialFunds + additionalDeposit);
 
         (, uint256 finalRateAllowance, uint256 finalLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(finalRateAllowance, initialRateAllowance); // No change
         assertEq(finalLockupAllowance, initialLockupAllowance); // No change
     }
@@ -210,7 +210,7 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
             )
         );
         payments.depositWithPermitAndIncreaseOperatorApproval(
-            address(testToken), USER1, additionalDeposit, deadline, v, r, s, OPERATOR, 50 ether, 500 ether
+            testToken, USER1, additionalDeposit, deadline, v, r, s, OPERATOR, 50 ether, 500 ether
         );
         vm.stopPrank();
     }
@@ -233,7 +233,7 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
 
         // Verify some allowance is used
         (, uint256 preRateAllowance, uint256 preLockupAllowance, uint256 preRateUsage, uint256 preLockupUsage,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(preRateUsage, paymentRate);
         assertEq(preLockupUsage, lockupFixed);
 
@@ -248,21 +248,21 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
         (uint8 v, bytes32 r, bytes32 s) =
             helper.getPermitSignature(user1Sk, USER1, address(payments), additionalDeposit, deadline);
 
-        (uint256 initialFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 initialFunds,,,) = payments.accounts(testToken, USER1);
 
         // Execute increase with existing usage
         vm.startPrank(USER1);
         payments.depositWithPermitAndIncreaseOperatorApproval(
-            address(testToken), USER1, additionalDeposit, deadline, v, r, s, OPERATOR, rateIncrease, lockupIncrease
+            testToken, USER1, additionalDeposit, deadline, v, r, s, OPERATOR, rateIncrease, lockupIncrease
         );
         vm.stopPrank();
 
         // Verify results
-        (uint256 finalFunds,,,) = payments.accounts(address(testToken), USER1);
+        (uint256 finalFunds,,,) = payments.accounts(testToken, USER1);
         assertEq(finalFunds, initialFunds + additionalDeposit);
 
         (, uint256 finalRateAllowance, uint256 finalLockupAllowance, uint256 finalRateUsage, uint256 finalLockupUsage,)
-        = payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+        = payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(finalRateAllowance, preRateAllowance + rateIncrease);
         assertEq(finalLockupAllowance, preLockupAllowance + lockupIncrease);
         assertEq(finalRateUsage, preRateUsage); // Usage unchanged
@@ -279,7 +279,7 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
 
         // Step 2: Verify initial approval state
         (bool isApproved, uint256 initialRateAllowance, uint256 initialLockupAllowance,,,) =
-            payments.operatorApprovals(address(testToken), USER1, OPERATOR);
+            payments.operatorApprovals(testToken, USER1, OPERATOR);
         assertEq(isApproved, true);
         assertEq(initialRateAllowance, RATE_ALLOWANCE);
         assertEq(initialLockupAllowance, LOCKUP_ALLOWANCE);
@@ -300,7 +300,7 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
         vm.startPrank(RELAYER);
         vm.expectRevert(abi.encodeWithSelector(Errors.SignerMustBeMsgSender.selector, RELAYER, from));
         payments.depositWithPermitAndIncreaseOperatorApproval(
-            address(testToken), USER1, additionalDeposit, deadline, v, r, s, OPERATOR, rateIncrease, lockupIncrease
+            testToken, USER1, additionalDeposit, deadline, v, r, s, OPERATOR, rateIncrease, lockupIncrease
         );
         vm.stopPrank();
     }

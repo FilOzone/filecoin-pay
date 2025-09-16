@@ -17,6 +17,8 @@ contract AccountManagementTest is Test, BaseTestHelper {
     uint256 internal constant INITIAL_BALANCE = 1000 ether;
     uint256 internal constant MAX_LOCKUP_PERIOD = 100;
 
+    IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
+
     function setUp() public {
         // Create test helpers and setup environment
         helper = new PaymentsTestHelpers();
@@ -81,18 +83,17 @@ contract AccountManagementTest is Test, BaseTestHelper {
         vm.expectRevert(
             abi.encodeWithSelector(Errors.MustSendExactNativeAmount.selector, DEPOSIT_AMOUNT, DEPOSIT_AMOUNT - 1)
         );
-        payments.deposit{value: DEPOSIT_AMOUNT - 1}(address(0), USER1, DEPOSIT_AMOUNT);
+        payments.deposit{value: DEPOSIT_AMOUNT - 1}(NATIVE_TOKEN, USER1, DEPOSIT_AMOUNT);
 
         vm.stopPrank();
     }
 
     function testDepositWithZeroRecipient() public {
-        address testTokenAddr = address(helper.testToken());
         vm.startPrank(USER1);
 
         // Using straightforward expectRevert without message
         vm.expectRevert();
-        payments.deposit(testTokenAddr, address(0), DEPOSIT_AMOUNT);
+        payments.deposit(helper.testToken(), address(0), DEPOSIT_AMOUNT);
 
         vm.stopPrank();
     }
@@ -112,7 +113,7 @@ contract AccountManagementTest is Test, BaseTestHelper {
 
         // Attempt deposit with more than approved
         vm.expectRevert();
-        payments.deposit(address(testToken), USER1, DEPOSIT_AMOUNT);
+        payments.deposit(testToken, USER1, DEPOSIT_AMOUNT);
         vm.stopPrank();
     }
 
@@ -164,12 +165,11 @@ contract AccountManagementTest is Test, BaseTestHelper {
     }
 
     function testWithdrawToWithZeroRecipient() public {
-        address testTokenAddr = address(helper.testToken());
         vm.startPrank(USER1);
 
         // Test zero recipient address
         vm.expectRevert();
-        payments.withdrawTo(testTokenAddr, address(0), DEPOSIT_AMOUNT);
+        payments.withdrawTo(helper.testToken(), address(0), DEPOSIT_AMOUNT);
 
         vm.stopPrank();
     }
@@ -288,7 +288,7 @@ contract AccountManagementTest is Test, BaseTestHelper {
 
         // Get account info
         (uint256 fundedUntil, uint256 totalBalance, uint256 availableBalance, uint256 lockupRate) =
-            payments.getAccountInfoIfSettled(address(helper.testToken()), USER1);
+            payments.getAccountInfoIfSettled(helper.testToken(), USER1);
 
         // Verify account state
         assertEq(totalBalance, DEPOSIT_AMOUNT, "total balance mismatch");
@@ -319,7 +319,7 @@ contract AccountManagementTest is Test, BaseTestHelper {
 
         // Get account info
         (uint256 fundedUntil, uint256 totalBalance, uint256 availableBalance, uint256 lockupRate) =
-            payments.getAccountInfoIfSettled(address(helper.testToken()), USER1);
+            payments.getAccountInfoIfSettled(helper.testToken(), USER1);
 
         // Verify account state
         assertEq(totalBalance, DEPOSIT_AMOUNT, "total balance mismatch");
@@ -383,14 +383,14 @@ contract AccountManagementTest is Test, BaseTestHelper {
 
         // Get raw account data for debugging
         (uint256 funds, uint256 lockupCurrent, uint256 lockupRate2, uint256 lockupLastSettledAt) =
-            payments.accounts(address(helper.testToken()), USER1);
+            payments.accounts(helper.testToken(), USER1);
 
         (, uint256 availableBalance) =
             calculateSimulatedLockupAndBalance(funds, lockupCurrent, lockupRate2, lockupLastSettledAt);
 
         // Get account info
         (uint256 fundedUntil, uint256 totalBalance1, uint256 availableBalance1, uint256 lockupRate1) =
-            payments.getAccountInfoIfSettled(address(helper.testToken()), USER1);
+            payments.getAccountInfoIfSettled(helper.testToken(), USER1);
 
         // Verify account state
         assertEq(totalBalance1, DEPOSIT_AMOUNT, "total balance mismatch");
@@ -426,14 +426,14 @@ contract AccountManagementTest is Test, BaseTestHelper {
 
         // Get raw account data for debugging
         (uint256 funds, uint256 lockupCurrent, uint256 lockupRate2, uint256 lockupLastSettledAt) =
-            payments.accounts(address(helper.testToken()), USER1);
+            payments.accounts(helper.testToken(), USER1);
 
         (, uint256 availableBalance) =
             calculateSimulatedLockupAndBalance(funds, lockupCurrent, lockupRate2, lockupLastSettledAt);
 
         // Get account info
         (uint256 fundedUntil, uint256 totalBalance2, uint256 availableBalance2, uint256 lockupRate3) =
-            payments.getAccountInfoIfSettled(address(helper.testToken()), USER1);
+            payments.getAccountInfoIfSettled(helper.testToken(), USER1);
 
         // Verify account state
         assertEq(totalBalance2, DEPOSIT_AMOUNT, "total balance mismatch");
@@ -469,7 +469,7 @@ contract AccountManagementTest is Test, BaseTestHelper {
 
         // Get account info
         (uint256 fundedUntil, uint256 totalBalance3, uint256 availableBalance3, uint256 lockupRate3) =
-            payments.getAccountInfoIfSettled(address(helper.testToken()), USER1);
+            payments.getAccountInfoIfSettled(helper.testToken(), USER1);
 
         // Verify account state
         assertEq(totalBalance3, DEPOSIT_AMOUNT, "total balance mismatch");
@@ -510,14 +510,14 @@ contract AccountManagementTest is Test, BaseTestHelper {
 
         // Get raw account data for debugging
         (uint256 funds, uint256 lockupCurrent, uint256 lockupRate2, uint256 lockupLastSettledAt) =
-            payments.accounts(address(helper.testToken()), USER1);
+            payments.accounts(helper.testToken(), USER1);
 
         (, uint256 availableBalance) =
             calculateSimulatedLockupAndBalance(funds, lockupCurrent, lockupRate2, lockupLastSettledAt);
 
         // Get account info
         (uint256 fundedUntil, uint256 totalBalance4, uint256 availableBalance4, uint256 lockupRate4) =
-            payments.getAccountInfoIfSettled(address(helper.testToken()), USER1);
+            payments.getAccountInfoIfSettled(helper.testToken(), USER1);
 
         // Verify account state
         assertEq(totalBalance4, DEPOSIT_AMOUNT, "total balance mismatch");
