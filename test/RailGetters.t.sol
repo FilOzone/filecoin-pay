@@ -316,11 +316,13 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         assertEq(nonExistentPayer.length, 0, "Should return empty array for non-existent payer");
 
         // Test non-existent token for payee
-        Payments.RailInfo[] memory nonExistentTokenForPayee = payments.getRailsForPayeeAndToken(USER2, IERC20(address(0x456)));
+        Payments.RailInfo[] memory nonExistentTokenForPayee =
+            payments.getRailsForPayeeAndToken(USER2, IERC20(address(0x456)));
         assertEq(nonExistentTokenForPayee.length, 0, "Should return empty array for non-existent token with payee");
 
         // Test non-existent token for payer
-        Payments.RailInfo[] memory nonExistentTokenForPayer = payments.getRailsForPayerAndToken(USER1, IERC20(address(0x456)));
+        Payments.RailInfo[] memory nonExistentTokenForPayer =
+            payments.getRailsForPayerAndToken(USER1, IERC20(address(0x456)));
         assertEq(nonExistentTokenForPayer.length, 0, "Should return empty array for non-existent token with payer");
     }
 }

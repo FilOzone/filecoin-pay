@@ -157,7 +157,8 @@ contract Payments is ReentrancyGuard {
     }
 
     // token => client => operator => Approval
-    mapping(IERC20 token => mapping(address client => mapping(address operator => OperatorApproval))) public operatorApprovals;
+    mapping(IERC20 token => mapping(address client => mapping(address operator => OperatorApproval))) public
+        operatorApprovals;
 
     // Define a struct for rails by payee information
     struct RailInfo {
@@ -626,12 +627,7 @@ contract Payments is ReentrancyGuard {
         uint8 v,
         bytes32 r,
         bytes32 s
-    )
-        external
-        nonReentrant
-        validateNonZeroAddress(to, "to")
-        settleAccountLockupBeforeAndAfter(token, to, false)
-    {
+    ) external nonReentrant validateNonZeroAddress(to, "to") settleAccountLockupBeforeAndAfter(token, to, false) {
         _depositWithAuthorization(token, to, amount, validAfter, validBefore, nonce, v, r, s);
     }
 

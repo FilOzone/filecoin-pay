@@ -464,9 +464,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
 
         // Set approval
         vm.startPrank(from);
-        payments.setOperatorApproval(
-            testToken, operator, true, rateAllowance, lockupAllowance, maxLockupPeriod
-        );
+        payments.setOperatorApproval(testToken, operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
         vm.stopPrank();
 
         // Verify operator allowances after setting them
@@ -495,9 +493,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
 
         // Revoke approval
         vm.startPrank(from);
-        payments.setOperatorApproval(
-            testToken, operator, false, rateAllowance, lockupAllowance, maxLockupPeriod
-        );
+        payments.setOperatorApproval(testToken, operator, false, rateAllowance, lockupAllowance, maxLockupPeriod);
         vm.stopPrank();
 
         // Verify operator allowances after revoking
@@ -745,17 +741,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         vm.startPrank(from);
 
         payments.depositWithPermitAndApproveOperator(
-            testToken,
-            from,
-            amount,
-            deadline,
-            v,
-            r,
-            s,
-            operator,
-            rateAllowance,
-            lockupAllowance,
-            maxLockupPeriod
+            testToken, from, amount, deadline, v, r, s, operator, rateAllowance, lockupAllowance, maxLockupPeriod
         );
 
         vm.stopPrank();
@@ -806,17 +792,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Expect custom error: ERC2612InvalidSigner(wrongRecovered, expectedOwner)
         vm.expectRevert(abi.encodeWithSignature("ERC2612InvalidSigner(address,address)", vm.addr(notSenderSk), from));
         payments.depositWithPermitAndApproveOperator(
-            testToken,
-            from,
-            amount,
-            deadline,
-            v,
-            r,
-            s,
-            operator,
-            rateAllowance,
-            lockupAllowance,
-            maxLockupPeriod
+            testToken, from, amount, deadline, v, r, s, operator, rateAllowance, lockupAllowance, maxLockupPeriod
         );
         vm.stopPrank();
 

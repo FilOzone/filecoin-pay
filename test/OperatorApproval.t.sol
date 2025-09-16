@@ -946,9 +946,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         uint256 secondLockupIncrease = 350 ether;
 
         vm.startPrank(USER1);
-        payments.increaseOperatorApproval(
-            helper.testToken(), OPERATOR, secondRateIncrease, secondLockupIncrease
-        );
+        payments.increaseOperatorApproval(helper.testToken(), OPERATOR, secondRateIncrease, secondLockupIncrease);
         vm.stopPrank();
 
         // Verify cumulative increases

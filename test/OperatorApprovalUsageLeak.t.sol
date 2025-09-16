@@ -93,8 +93,7 @@ contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
         console.log("  Final epoch:", finalEpoch);
 
         // Check operator lockup usage after finalization
-        (,,, uint256 rateUsageAfter, uint256 lockupUsageAfter,) =
-            payments.operatorApprovals(testToken, USER1, OPERATOR);
+        (,,, uint256 rateUsageAfter, uint256 lockupUsageAfter,) = payments.operatorApprovals(testToken, USER1, OPERATOR);
 
         console.log("\nFinal operator usage:");
         console.log("  Rate usage:", rateUsageAfter);

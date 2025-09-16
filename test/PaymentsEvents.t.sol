@@ -82,9 +82,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, true, true);
-        emit Payments.OperatorApprovalUpdated(
-            testToken, USER1, OPERATOR2, true, 5 ether, 50 ether, MAX_LOCKUP_PERIOD
-        );
+        emit Payments.OperatorApprovalUpdated(testToken, USER1, OPERATOR2, true, 5 ether, 50 ether, MAX_LOCKUP_PERIOD);
 
         // Set operator approval
         payments.setOperatorApproval(
