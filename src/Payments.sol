@@ -1774,11 +1774,22 @@ contract Payments is ReentrancyGuard {
         require(available >= requested, Errors.WithdrawAmountExceedsAccumulatedFees(token, available, requested));
         // TODO interval dutch auction
         require(msg.value >= AUCTION_START_PRICE, Errors.InsufficientNativeTokenForBurn(msg.value, AUCTION_START_PRICE));
-        // FIXME handle fee-on-transfer tokens
         fees.funds = available - requested;
         (bool success,) = BURN_ADDRESS.call{value: msg.value}("");
         require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
-        token.safeTransfer(recipient, requested);
+        {
+            uint256 balanceBefore = token.balanceOf(address(this));
+            token.safeTransfer(recipient, requested);
+            uint256 balanceAfter = token.balanceOf(address(this));
+
+            uint256 balanceChange = balanceBefore - balanceAfter;
+            // handle fee-on-transfer and hidden-denominator tokens
+            if (balanceChange < requested) {
+                fees.funds += requested - balanceChange;
+            } else if (balanceChange > requested) {
+                fees.funds -= balanceChange - requested;
+            }
+        }
     }
 }
 
