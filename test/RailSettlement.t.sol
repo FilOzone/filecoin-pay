@@ -694,6 +694,7 @@ contract RailSettlementTest is Test, BaseTestHelper {
         assertEq(settledAmount, expectedSettledAmount, "Returned settledAmount incorrect");
         assertEq(netPayeeAmount, expectedNetPayeeAmount, "Returned netPayeeAmount incorrect");
         assertEq(operatorCommission, expectedOperatorCommission, "Returned operatorCommission incorrect");
+        assertEq(totalNetworkFee, expectedNetworkFee, "Returned networkFee incorrect");
         assertEq(settledUpto, block.number, "Returned settledUpto incorrect");
 
         // 2. Balances after settlement
