@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+
+import {Dutch} from "./Dutch.sol";
 import "./Errors.sol";
 import "./RateChangeQueue.sol";
 import "./interfaces/IERC3009.sol";
@@ -35,12 +37,13 @@ interface IValidator {
 
 // @title Payments contract.
 contract Payments is ReentrancyGuard {
+    using Dutch for uint256;
     using SafeERC20 for IERC20;
     using RateChangeQueue for RateChangeQueue.Queue;
 
     // Maximum commission rate in basis points (100% = 10000 BPS)
     uint256 public constant COMMISSION_MAX_BPS = 10000;
-    uint256 private constant AUCTION_START_PRICE = 0.083 ether; // 0.083 FIL
+    uint88 private constant AUCTION_START_PRICE = 0.083 ether; // 0.083 FIL
 
     uint256 public constant NETWORK_FEE_NUMERATOR = 5; // 0.5%
     uint256 public constant NETWORK_FEE_DENOMINATOR = 1000;
@@ -178,6 +181,12 @@ contract Payments is ReentrancyGuard {
 
     // token => payer => array of railIds
     mapping(IERC20 token => mapping(address payer => uint256[])) private payerRails;
+
+    struct AuctionInfo {
+        uint88 startPrice; // highest possible price is 309m FIL
+        uint168 startTime;
+    }
+    mapping(IERC20 token => AuctionInfo) private auctionInfo;
 
     struct SettlementState {
         uint256 totalSettledAmount;
@@ -1081,6 +1090,12 @@ contract Payments is ReentrancyGuard {
             require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
         } else {
             accounts[token][address(this)].funds += fee;
+            // start fee auction if necessary
+            AuctionInfo storage auction = auctionInfo[token];
+            if (auction.startPrice == 0) {
+                auction.startPrice = AUCTION_START_PRICE;
+                auction.startTime = uint168(block.timestamp);
+            }
         }
         amount -= fee;
 
@@ -1774,8 +1789,15 @@ contract Payments is ReentrancyGuard {
         require(available >= requested, Errors.WithdrawAmountExceedsAccumulatedFees(token, available, requested));
 
         // TODO interval dutch auction
-        require(msg.value >= AUCTION_START_PRICE, Errors.InsufficientNativeTokenForBurn(msg.value, AUCTION_START_PRICE));
+        AuctionInfo storage auction = auctionInfo[token];
+        uint256 auctionPrice = uint256(auction.startPrice).decay(block.timestamp - auction.startTime);
+        require(msg.value >= auctionPrice, Errors.InsufficientNativeTokenForBurn(msg.value, auctionPrice));
+
+        auction.startPrice = uint88(auctionPrice * Dutch.RESET_FACTOR);
+        auction.startTime = uint168(block.timestamp);
+
         fees.funds = available - requested;
+
         (bool success,) = BURN_ADDRESS.call{value: msg.value}("");
         require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
 

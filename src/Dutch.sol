@@ -4,8 +4,12 @@ pragma solidity ^0.8.30;
 import {exp2} from "@prb-math/Common.sol";
 import {UD60x18, uUNIT} from "@prb-math/UD60x18.sol";
 
+/**
+ * @dev Recurring dutch auction 
+ */
 library Dutch {
-    uint256 private constant HALVING_INTERVAL = 3.5 days;
+    uint256 public constant RESET_FACTOR = 4;
+    uint256 public constant HALVING_INTERVAL = 3.5 days;
 
     /**
      * @notice Exponential decay by 1/4 per week
