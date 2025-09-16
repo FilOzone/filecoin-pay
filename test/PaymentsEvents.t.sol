@@ -163,13 +163,17 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // calcualate expected values
         Payments.RailView memory rail = payments.getRail(railId);
         uint256 oneTimeAmount = 5 ether;
-        uint256 expectedNetworkFee = oneTimeAmount * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
-        uint256 expectedOperatorCommission = ((oneTimeAmount - expectedNetworkFee) * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
+        uint256 expectedNetworkFee =
+            oneTimeAmount * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
+        uint256 expectedOperatorCommission =
+            ((oneTimeAmount - expectedNetworkFee) * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
         uint256 expectedNetPayeeAmount = oneTimeAmount - expectedOperatorCommission - expectedNetworkFee;
 
         // expect the event to be emitted
         vm.expectEmit(true, false, false, true);
-        emit Payments.RailOneTimePaymentProcessed(railId, expectedNetPayeeAmount, expectedOperatorCommission, expectedNetworkFee);
+        emit Payments.RailOneTimePaymentProcessed(
+            railId, expectedNetPayeeAmount, expectedOperatorCommission, expectedNetworkFee
+        );
 
         // Execute one-time payment by calling modifyRailPayment with the current rate and a one-time payment amount
 
@@ -217,8 +221,10 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // expected values
         Payments.RailView memory rail = payments.getRail(railId);
         uint256 totalSettledAmount = 5 * rail.paymentRate;
-        uint256 totalNetworkFee = 5 * rail.paymentRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
-        uint256 totalOperatorCommission = ((totalSettledAmount - totalNetworkFee) * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
+        uint256 totalNetworkFee =
+            5 * rail.paymentRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
+        uint256 totalOperatorCommission =
+            ((totalSettledAmount - totalNetworkFee) * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
         uint256 totalNetPayeeAmount = totalSettledAmount - totalNetworkFee - totalOperatorCommission;
 
         // Expect the event to be emitted

@@ -40,7 +40,7 @@ contract Payments is ReentrancyGuard {
 
     // Maximum commission rate in basis points (100% = 10000 BPS)
     uint256 public constant COMMISSION_MAX_BPS = 10000;
-    uint256 private constant AUCTION_START_PRICE = .083 ether; // 0.083 FIL
+    uint256 private constant AUCTION_START_PRICE = 0.083 ether; // 0.083 FIL
 
     uint256 public constant NETWORK_FEE_NUMERATOR = 5; // 0.5%
     uint256 public constant NETWORK_FEE_DENOMINATOR = 1000;
@@ -83,7 +83,9 @@ contract Payments is ReentrancyGuard {
         uint256 oldLockupFixed,
         uint256 newLockupFixed
     );
-    event RailOneTimePaymentProcessed(uint256 indexed railId, uint256 netPayeeAmount, uint256 operatorCommission, uint256 networkFee);
+    event RailOneTimePaymentProcessed(
+        uint256 indexed railId, uint256 netPayeeAmount, uint256 operatorCommission, uint256 networkFee
+    );
     event RailRateModified(uint256 indexed railId, uint256 oldRate, uint256 newRate);
     event RailSettled(
         uint256 indexed railId,
@@ -1130,7 +1132,7 @@ contract Payments is ReentrancyGuard {
     /// @return totalSettledAmount The total amount settled and transferred.
     /// @return totalNetPayeeAmount The net amount credited to the payee after fees.
     /// @return totalOperatorCommission The commission credited to the operator.
-    /// @return totalNetworkFee The fee accrued for burning FIL. 
+    /// @return totalNetworkFee The fee accrued for burning FIL.
     /// @return finalSettledEpoch The epoch up to which settlement was actually completed.
     /// @return note Additional information about the settlement.
     function settleTerminatedRailWithoutValidation(uint256 railId)
@@ -1222,7 +1224,12 @@ contract Payments is ReentrancyGuard {
         // Nothing to settle (already settled or zero-duration)
         if (startEpoch >= maxSettlementEpoch) {
             return (
-                0, 0, 0, 0, startEpoch, string.concat("already settled up to epoch ", Strings.toString(maxSettlementEpoch))
+                0,
+                0,
+                0,
+                0,
+                startEpoch,
+                string.concat("already settled up to epoch ", Strings.toString(maxSettlementEpoch))
             );
         }
 
@@ -1241,9 +1248,12 @@ contract Payments is ReentrancyGuard {
         finalSettledEpoch = rail.settledUpTo;
         note = checkAndFinalizeTerminatedRail(railId, rail, payer, note);
 
-        emit RailSettled(railId, totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, finalSettledEpoch);
+        emit RailSettled(
+            railId, totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, finalSettledEpoch
+        );
 
-        return (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, finalSettledEpoch, note);
+        return
+            (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, finalSettledEpoch, note);
     }
 
     function checkAndFinalizeTerminatedRail(
@@ -1342,8 +1352,13 @@ contract Payments is ReentrancyGuard {
 
             // If validator returned no progress, exit early without updating state
             if (rail.settledUpTo <= state.processedEpoch) {
-                return
-                    (state.totalSettledAmount, state.totalNetPayeeAmount, state.totalOperatorCommission, state.totalNetworkFee, validationNote);
+                return (
+                    state.totalSettledAmount,
+                    state.totalNetPayeeAmount,
+                    state.totalOperatorCommission,
+                    state.totalNetworkFee,
+                    validationNote
+                );
             }
 
             // Add the settled amounts to our running totals
@@ -1354,8 +1369,13 @@ contract Payments is ReentrancyGuard {
 
             // If validator partially settled the segment, exit early
             if (rail.settledUpTo < segmentEndBoundary) {
-                return
-                    (state.totalSettledAmount, state.totalNetPayeeAmount, state.totalOperatorCommission, state.totalNetworkFee, validationNote);
+                return (
+                    state.totalSettledAmount,
+                    state.totalNetPayeeAmount,
+                    state.totalOperatorCommission,
+                    state.totalNetworkFee,
+                    validationNote
+                );
             }
 
             // Successfully settled full segment, update tracking values
@@ -1369,7 +1389,13 @@ contract Payments is ReentrancyGuard {
         }
 
         // We've successfully settled up to the target epoch
-        return (state.totalSettledAmount, state.totalNetPayeeAmount, state.totalOperatorCommission, state.totalNetworkFee, state.note);
+        return (
+            state.totalSettledAmount,
+            state.totalNetPayeeAmount,
+            state.totalOperatorCommission,
+            state.totalNetworkFee,
+            state.note
+        );
     }
 
     function _getNextSegmentBoundary(
@@ -1400,7 +1426,13 @@ contract Payments is ReentrancyGuard {
 
     function _settleSegment(uint256 railId, uint256 epochStart, uint256 epochEnd, uint256 rate, bool skipValidation)
         internal
-        returns (uint256 settledAmount, uint256 netPayeeAmount, uint256 operatorCommission, uint256 networkFee, string memory note)
+        returns (
+            uint256 settledAmount,
+            uint256 netPayeeAmount,
+            uint256 operatorCommission,
+            uint256 networkFee,
+            string memory note
+        )
     {
         Rail storage rail = rails[railId];
         Account storage payer = accounts[rail.token][rail.from];
