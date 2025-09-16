@@ -365,7 +365,7 @@ contract Payments is ReentrancyGuard {
         uint256 rateAllowanceIncrease,
         uint256 lockupAllowanceIncrease
     ) external nonReentrant validateNonZeroAddress(operator, "operator") {
-        _increaseOperatorApproval(IERC20(token), operator, rateAllowanceIncrease, lockupAllowanceIncrease);
+        _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
     }
 
     function _increaseOperatorApproval(
@@ -466,9 +466,9 @@ contract Payments is ReentrancyGuard {
             require(msg.value == 0, Errors.NativeTokenNotAccepted(msg.value));
 
             // Use balance-before/balance-after accounting for fee-on-transfer tokens
-            uint256 balanceBefore = IERC20(token).balanceOf(address(this));
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-            uint256 balanceAfter = IERC20(token).balanceOf(address(this));
+            uint256 balanceBefore = token.balanceOf(address(this));
+            token.safeTransferFrom(msg.sender, address(this), amount);
+            uint256 balanceAfter = token.balanceOf(address(this));
 
             actualAmount = balanceAfter - balanceBefore;
         }
@@ -516,9 +516,9 @@ contract Payments is ReentrancyGuard {
         Account storage account = accounts[token][to];
 
         // Use balance-before/balance-after accounting for fee-on-transfer tokens
-        uint256 balanceBefore = IERC20(token).balanceOf(address(this));
-        IERC20(token).safeTransferFrom(to, address(this), amount);
-        uint256 balanceAfter = IERC20(token).balanceOf(address(this));
+        uint256 balanceBefore = token.balanceOf(address(this));
+        token.safeTransferFrom(to, address(this), amount);
+        uint256 balanceAfter = token.balanceOf(address(this));
 
         uint256 actualAmount = balanceAfter - balanceBefore;
 
@@ -603,7 +603,7 @@ contract Payments is ReentrancyGuard {
         validateSignerIsRecipient(to)
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
-        _increaseOperatorApproval(IERC20(token), operator, rateAllowanceIncrease, lockupAllowanceIncrease);
+        _increaseOperatorApproval(token, operator, rateAllowanceIncrease, lockupAllowanceIncrease);
         _depositWithPermit(token, to, amount, deadline, v, r, s);
     }
 
@@ -783,7 +783,7 @@ contract Payments is ReentrancyGuard {
             (bool success,) = payable(to).call{value: amount}("");
             require(success, Errors.NativeTransferFailed(to, amount));
         } else {
-            IERC20(token).safeTransfer(to, amount);
+            token.safeTransfer(to, amount);
         }
 
         emit WithdrawRecorded(token, msg.sender, to, amount);

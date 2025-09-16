@@ -91,9 +91,11 @@ contract AccountManagementTest is Test, BaseTestHelper {
     function testDepositWithZeroRecipient() public {
         vm.startPrank(USER1);
 
+        IERC20 testToken = helper.testToken();
+
         // Using straightforward expectRevert without message
         vm.expectRevert();
-        payments.deposit(helper.testToken(), address(0), DEPOSIT_AMOUNT);
+        payments.deposit(testToken, address(0), DEPOSIT_AMOUNT);
 
         vm.stopPrank();
     }
@@ -167,9 +169,11 @@ contract AccountManagementTest is Test, BaseTestHelper {
     function testWithdrawToWithZeroRecipient() public {
         vm.startPrank(USER1);
 
+        IERC20 testToken = helper.testToken();
+
         // Test zero recipient address
         vm.expectRevert();
-        payments.withdrawTo(helper.testToken(), address(0), DEPOSIT_AMOUNT);
+        payments.withdrawTo(testToken, address(0), DEPOSIT_AMOUNT);
 
         vm.stopPrank();
     }
