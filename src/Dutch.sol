@@ -5,7 +5,7 @@ import {exp2} from "@prb-math/Common.sol";
 import {UD60x18, uUNIT} from "@prb-math/UD60x18.sol";
 
 /**
- * @dev Recurring dutch auction 
+ * @dev Recurring dutch auction
  */
 library Dutch {
     uint256 public constant RESET_FACTOR = 4;

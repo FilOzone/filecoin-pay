@@ -186,6 +186,7 @@ contract Payments is ReentrancyGuard {
         uint88 startPrice; // highest possible price is 309m FIL
         uint168 startTime;
     }
+
     mapping(IERC20 token => AuctionInfo) private auctionInfo;
 
     struct SettlementState {
