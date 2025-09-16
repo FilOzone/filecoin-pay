@@ -42,8 +42,8 @@ contract Payments is ReentrancyGuard {
     uint256 public constant COMMISSION_MAX_BPS = 10000;
     uint256 private constant AUCTION_START_PRICE = .083 ether; // 0.083 FIL
 
-    uint256 private constant NETWORK_FEE_NUMERATOR = 5; // 0.5%
-    uint256 private constant NETWORK_FEE_DENOMINATOR = 1000;
+    uint256 public constant NETWORK_FEE_NUMERATOR = 5; // 0.5%
+    uint256 public constant NETWORK_FEE_DENOMINATOR = 1000;
 
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
     IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
@@ -83,13 +83,14 @@ contract Payments is ReentrancyGuard {
         uint256 oldLockupFixed,
         uint256 newLockupFixed
     );
-    event RailOneTimePaymentProcessed(uint256 indexed railId, uint256 netPayeeAmount, uint256 operatorCommission);
+    event RailOneTimePaymentProcessed(uint256 indexed railId, uint256 netPayeeAmount, uint256 operatorCommission, uint256 networkFee);
     event RailRateModified(uint256 indexed railId, uint256 oldRate, uint256 newRate);
     event RailSettled(
         uint256 indexed railId,
         uint256 totalSettledAmount,
         uint256 totalNetPayeeAmount,
         uint256 operatorCommission,
+        uint256 networkFee,
         uint256 settledUpTo
     );
     event RailTerminated(uint256 indexed railId, address indexed by, uint256 endEpoch);
@@ -1120,7 +1121,7 @@ contract Payments is ReentrancyGuard {
             // Credit payee (net amount after fees)
             payee.funds += netPayeeAmount;
 
-            emit RailOneTimePaymentProcessed(railId, netPayeeAmount, operatorCommission);
+            emit RailOneTimePaymentProcessed(railId, netPayeeAmount, operatorCommission, networkFee);
         }
     }
 
@@ -1240,7 +1241,7 @@ contract Payments is ReentrancyGuard {
         finalSettledEpoch = rail.settledUpTo;
         note = checkAndFinalizeTerminatedRail(railId, rail, payer, note);
 
-        emit RailSettled(railId, totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, finalSettledEpoch);
+        emit RailSettled(railId, totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, finalSettledEpoch);
 
         return (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, finalSettledEpoch, note);
     }

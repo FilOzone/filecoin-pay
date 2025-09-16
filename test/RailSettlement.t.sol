@@ -253,12 +253,14 @@ contract RailSettlementTest is Test, BaseTestHelper {
 
         // Verify reduced amount (80% of original)
         uint256 expectedAmount = (rate * 5 * 80) / 100; // 5 blocks * 10 ether * 80%
+        uint256 expectedNetworkFee = expectedAmount * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
+        uint256 expectedNetPayeeAmount = expectedAmount - expectedNetworkFee;
 
         // Settle with validation - verify against NET payee amount
         RailSettlementHelpers.SettlementResult memory result =
             settlementHelper.settleRailAndVerify(railId, block.number, expectedAmount, block.number);
 
-        assertEq(result.netPayeeAmount, expectedAmount, "Net payee amount incorrect");
+        assertEq(result.netPayeeAmount, expectedNetPayeeAmount, "Net payee amount incorrect");
         assertEq(result.operatorCommission, 0, "Operator commission incorrect");
 
         // Verify validator note
@@ -401,7 +403,7 @@ contract RailSettlementTest is Test, BaseTestHelper {
             payments.settleRail(railId, block.number);
 
         // Verify that total settled amount is equal to the sum of net payee amount and operator commission
-        assertEq(settledAmount, netPayeeAmount + totalOperatorCommission, "Mismatch in settled amount breakdown");
+        assertEq(settledAmount, netPayeeAmount + totalOperatorCommission + totalNetworkFee, "Mismatch in settled amount breakdown");
 
         // Should settle up to endEpoch, which is lockupPeriod blocks after the last settlement
         uint256 expectedAmount2 = rate * lockupPeriod; // lockupPeriod = 5 blocks
@@ -665,9 +667,10 @@ contract RailSettlementTest is Test, BaseTestHelper {
 
         // --- Expected Calculations ---
         uint256 expectedSettledAmount = rate * elapsedBlocks;
+        uint256 expectedNetworkFee = expectedSettledAmount * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
         uint256 expectedOperatorCommission =
-            (expectedSettledAmount * operatorCommissionBps) / payments.COMMISSION_MAX_BPS();
-        uint256 expectedNetPayeeAmount = expectedSettledAmount - expectedOperatorCommission;
+            ((expectedSettledAmount - expectedNetworkFee) * operatorCommissionBps) / payments.COMMISSION_MAX_BPS();
+        uint256 expectedNetPayeeAmount = expectedSettledAmount - expectedNetworkFee - expectedOperatorCommission;
 
         // --- Verification ---
 
