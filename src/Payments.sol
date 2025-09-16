@@ -1073,7 +1073,12 @@ contract Payments is ReentrancyGuard {
         returns (uint256 netPayeeAmount, uint256 operatorCommission, uint256 fee)
     {
         fee = (amount * NETWORK_FEE_NUMERATOR + (NETWORK_FEE_DENOMINATOR - 1)) / NETWORK_FEE_DENOMINATOR;
-        accounts[token][address(this)].funds += fee;
+        if (token == NATIVE_TOKEN) {
+            (bool success,) = BURN_ADDRESS.call{value: fee}("");
+            require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
+        } else {
+            accounts[token][address(this)].funds += fee;
+        }
         amount -= fee;
 
         // Calculate operator commission (if any) based on remaining amount
