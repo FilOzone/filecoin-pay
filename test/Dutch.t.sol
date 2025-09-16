@@ -19,8 +19,8 @@ contract DutchTest is Test {
     }
 
     function testDecay() public pure {
-        checkExactDecay(.00000001 ether);
-        checkExactDecay(.01 ether);
+        checkExactDecay(0.00000001 ether);
+        checkExactDecay(0.01 ether);
         checkExactDecay(9 ether);
         checkExactDecay(11 ether);
         checkExactDecay(13 ether);

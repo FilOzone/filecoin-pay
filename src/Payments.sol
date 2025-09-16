@@ -1772,11 +1772,13 @@ contract Payments is ReentrancyGuard {
         Account storage fees = accounts[token][address(this)];
         uint256 available = fees.funds;
         require(available >= requested, Errors.WithdrawAmountExceedsAccumulatedFees(token, available, requested));
+
         // TODO interval dutch auction
         require(msg.value >= AUCTION_START_PRICE, Errors.InsufficientNativeTokenForBurn(msg.value, AUCTION_START_PRICE));
         fees.funds = available - requested;
         (bool success,) = BURN_ADDRESS.call{value: msg.value}("");
         require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
+
         {
             uint256 balanceBefore = token.balanceOf(address(this));
             token.safeTransfer(recipient, requested);
