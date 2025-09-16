@@ -510,7 +510,7 @@ contract Payments is ReentrancyGuard {
         require(token != NATIVE_TOKEN, Errors.NativeTokenNotSupported());
 
         // Use 'to' as the owner in permit call (the address that signed the permit)
-        IERC20Permit(token).permit(to, address(this), amount, deadline, v, r, s);
+        IERC20Permit(address(token)).permit(to, address(this), amount, deadline, v, r, s);
 
         Account storage account = accounts[token][to];
 

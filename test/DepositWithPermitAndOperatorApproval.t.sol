@@ -61,7 +61,6 @@ contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
 
     function testDepositWithPermitAndOperatorApproval_Revert_DifferentSender() public {
         address from = USER1;
-        address to = from;
         uint256 deadline = block.timestamp + 1 hours;
 
         // get signature for permit
