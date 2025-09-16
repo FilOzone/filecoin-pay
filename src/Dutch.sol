@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.30;
 
-import {exp2} from "@prb-math/Common.sol";
 import {UD60x18, uUNIT} from "@prb-math/UD60x18.sol";
 
 /**
