@@ -193,7 +193,7 @@ contract RailSettlementHelpers is Test {
 
         // Verify rail was properly terminated
         rail = payments.getRail(railId);
-        (,,, uint256 lockupLastSettledAt) = payments.accounts(address(baseHelper.testToken()), client);
+        (,,, uint256 lockupLastSettledAt) = payments.accounts(baseHelper.testToken(), client);
         assertTrue(rail.endEpoch > 0, "Rail should be terminated");
         assertEq(
             rail.endEpoch,
@@ -217,7 +217,7 @@ contract RailSettlementHelpers is Test {
 
         // Get operator allowance usage before modifications
         (,,, uint256 rateUsageBefore, uint256 lockupUsageBefore,) =
-            paymentsContract.operatorApprovals(address(baseHelper.testToken()), client, operator);
+            paymentsContract.operatorApprovals(baseHelper.testToken(), client, operator);
 
         // Calculate current lockup total
         uint256 oldLockupTotal = railBefore.lockupFixed + (railBefore.paymentRate * railBefore.lockupPeriod);
@@ -251,7 +251,7 @@ contract RailSettlementHelpers is Test {
 
         // Get operator allowance usage after modifications
         (,,, uint256 rateUsageAfter, uint256 lockupUsageAfter,) =
-            paymentsContract.operatorApprovals(address(baseHelper.testToken()), client, operator);
+            paymentsContract.operatorApprovals(baseHelper.testToken(), client, operator);
 
         // Verify rate usage changes correctly
         if (newRate > railBefore.paymentRate) {

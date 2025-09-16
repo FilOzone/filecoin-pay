@@ -45,7 +45,7 @@ contract FeesTest is Test, BaseTestHelper {
         settlementHelper.initialize(payments, helper);
 
         // Set up 3 different tokens
-        token1 = MockERC20(address(helper.testToken())); // Use the default token from the helper
+        token1 = MockERC20(helper.testToken()); // Use the default token from the helper
         token2 = new MockERC20("Token 2", "TK2");
         token3 = new MockERC20("Token 3", "TK3");
 
@@ -74,8 +74,8 @@ contract FeesTest is Test, BaseTestHelper {
 
         // Make deposits with token2 and token3
         vm.startPrank(USER1);
-        payments.deposit(address(token2), USER1, DEPOSIT_AMOUNT);
-        payments.deposit(address(token3), USER1, DEPOSIT_AMOUNT);
+        payments.deposit(token2, USER1, DEPOSIT_AMOUNT);
+        payments.deposit(token3, USER1, DEPOSIT_AMOUNT);
         vm.stopPrank();
     }
 
@@ -92,7 +92,7 @@ contract FeesTest is Test, BaseTestHelper {
         // Operator approvals for token2 and token3
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(token2),
+            token2,
             OPERATOR,
             true, // approved
             RAIL2_RATE, // rate allowance for token2
@@ -101,7 +101,7 @@ contract FeesTest is Test, BaseTestHelper {
         );
 
         payments.setOperatorApproval(
-            address(token3),
+            token3,
             OPERATOR,
             true, // approved
             RAIL3_RATE, // rate allowance for token3
@@ -125,7 +125,7 @@ contract FeesTest is Test, BaseTestHelper {
         // Create a rail with token2
         vm.startPrank(OPERATOR);
         rail2Id = payments.createRail(
-            address(token2),
+            token2,
             USER1, // from
             USER2, // to
             address(0), // no validator
@@ -139,7 +139,7 @@ contract FeesTest is Test, BaseTestHelper {
 
         // Create a rail with token3
         rail3Id = payments.createRail(
-            address(token3),
+            token3,
             USER1, // from
             USER2, // to
             address(0), // no validator
