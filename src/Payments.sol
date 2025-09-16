@@ -40,7 +40,7 @@ contract Payments is ReentrancyGuard {
 
     // Maximum commission rate in basis points (100% = 10000 BPS)
     uint256 public constant COMMISSION_MAX_BPS = 10000;
-
+    uint256 private constant AUCTION_START_PRICE = .083 ether; // 0.083 FIL
     uint256 public constant NETWORK_FEE = 1300000 gwei; // equivalent to 1300000 nanoFIL / 0.0013 FIL
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
     IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
@@ -1753,6 +1753,19 @@ contract Payments is ReentrancyGuard {
         availableFunds = account.funds - simulatedLockupCurrent;
 
         return (fundedUntilEpoch, currentFunds, availableFunds, currentLockupRate);
+    }
+
+    function burnFILForFees(IERC20 token, address recipient, uint256 requested) external payable {
+        Account storage fees = accounts[token][address(this)];
+        uint256 available = fees.funds;
+        require(available >= requested, Errors.WithdrawAmountExceedsAccumulatedFees(token, available, requested));
+        // TODO interval dutch auction
+        require(msg.value >= AUCTION_START_PRICE, Errors.InsufficientNativeTokenForBurn(AUCTION_START_PRICE, requested));
+        // FIXME handle fee-on-transfer tokens
+        fees.funds = available - requested;
+        (bool success,) = BURN_ADDRESS.call{value: msg.value}("");
+        require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
+        token.safeTransfer(recipient, requested);
     }
 }
 
