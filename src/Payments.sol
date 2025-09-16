@@ -1773,7 +1773,7 @@ contract Payments is ReentrancyGuard {
         uint256 available = fees.funds;
         require(available >= requested, Errors.WithdrawAmountExceedsAccumulatedFees(token, available, requested));
         // TODO interval dutch auction
-        require(msg.value >= AUCTION_START_PRICE, Errors.InsufficientNativeTokenForBurn(AUCTION_START_PRICE, requested));
+        require(msg.value >= AUCTION_START_PRICE, Errors.InsufficientNativeTokenForBurn(msg.value, AUCTION_START_PRICE));
         // FIXME handle fee-on-transfer tokens
         fees.funds = available - requested;
         (bool success,) = BURN_ADDRESS.call{value: msg.value}("");
