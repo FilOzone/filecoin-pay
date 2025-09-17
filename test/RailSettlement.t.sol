@@ -669,6 +669,14 @@ contract RailSettlementTest is Test, BaseTestHelper {
         Payments.Account memory operatorBefore = helper.getAccountData(OPERATOR);
         Payments.Account memory serviceFeeRecipientBefore = helper.getAccountData(SERVICE_FEE_RECIPIENT);
 
+        // --- Expected Calculations ---
+        uint256 expectedSettledAmount = rate * elapsedBlocks;
+        uint256 expectedNetworkFee =
+            expectedSettledAmount * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
+        uint256 expectedOperatorCommission =
+            ((expectedSettledAmount - expectedNetworkFee) * operatorCommissionBps) / payments.COMMISSION_MAX_BPS();
+        uint256 expectedNetPayeeAmount = expectedSettledAmount - expectedNetworkFee - expectedOperatorCommission;
+
         // --- Settle Rail ---
         vm.startPrank(USER1); // Any participant can settle
         (
@@ -680,13 +688,6 @@ contract RailSettlementTest is Test, BaseTestHelper {
         ) = payments.settleRail(railId, block.number);
         vm.stopPrank();
 
-        // --- Expected Calculations ---
-        uint256 expectedSettledAmount = rate * elapsedBlocks;
-        uint256 expectedNetworkFee =
-            expectedSettledAmount * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
-        uint256 expectedOperatorCommission =
-            ((expectedSettledAmount - expectedNetworkFee) * operatorCommissionBps) / payments.COMMISSION_MAX_BPS();
-        uint256 expectedNetPayeeAmount = expectedSettledAmount - expectedNetworkFee - expectedOperatorCommission;
 
         // --- Verification ---
 
