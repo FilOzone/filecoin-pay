@@ -31,7 +31,6 @@ contract BurnTest is Test {
         payer = helper.USER1();
         payee = helper.USER2();
 
-
         vm.prank(payer);
         payments.setOperatorApproval(TEST_TOKEN, operator, true, 5 * 10 ** 18, 5 * 10 ** 18, 28800);
         vm.prank(payer);
@@ -52,7 +51,7 @@ contract BurnTest is Test {
     }
 
     function testBurn() public {
-        uint256 newRate = 9 * 10**16;
+        uint256 newRate = 9 * 10 ** 16;
         vm.prank(operator);
         payments.modifyRailPayment(testTokenRailId, newRate, 0);
 
@@ -75,7 +74,7 @@ contract BurnTest is Test {
     }
 
     function testNativeAutoBurned() public {
-        uint256 newRate = 7 * 10**16;
+        uint256 newRate = 7 * 10 ** 16;
         vm.prank(operator);
         payments.modifyRailPayment(nativeTokenRailId, newRate, 0);
 
@@ -92,6 +91,8 @@ contract BurnTest is Test {
         (uint256 availableAfter,,,) = payments.accounts(NATIVE_TOKEN, address(payments));
         assertEq(availableAfter, 0);
 
-        assertEq(BURN_ADDRESS.balance, 12 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
+        assertEq(
+            BURN_ADDRESS.balance, 12 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR()
+        );
     }
 }
