@@ -187,7 +187,7 @@ contract Payments is ReentrancyGuard {
         uint168 startTime;
     }
 
-    mapping(IERC20 token => AuctionInfo) private auctionInfo;
+    mapping(IERC20 token => AuctionInfo) public auctionInfo;
 
     struct SettlementState {
         uint256 totalSettledAmount;
@@ -1085,6 +1085,7 @@ contract Payments is ReentrancyGuard {
         internal
         returns (uint256 netPayeeAmount, uint256 operatorCommission, uint256 fee)
     {
+        // ceil()
         fee = (amount * NETWORK_FEE_NUMERATOR + (NETWORK_FEE_DENOMINATOR - 1)) / NETWORK_FEE_DENOMINATOR;
         if (token == NATIVE_TOKEN) {
             (bool success,) = BURN_ADDRESS.call{value: fee}("");
@@ -1789,7 +1790,6 @@ contract Payments is ReentrancyGuard {
         uint256 available = fees.funds;
         require(available >= requested, Errors.WithdrawAmountExceedsAccumulatedFees(token, available, requested));
 
-        // TODO interval dutch auction
         AuctionInfo storage auction = auctionInfo[token];
         uint256 auctionPrice = uint256(auction.startPrice).decay(block.timestamp - auction.startTime);
         require(msg.value >= auctionPrice, Errors.InsufficientNativeTokenForBurn(msg.value, auctionPrice));

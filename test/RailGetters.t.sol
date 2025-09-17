@@ -18,9 +18,6 @@ contract PayeeRailsTest is Test, BaseTestHelper {
     Payments payments;
     MockERC20 token;
 
-    // Define additional address for testing
-    address public constant USER3 = address(0x7);
-
     // Secondary token for multi-token testing
     MockERC20 token2;
 
