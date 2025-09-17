@@ -1154,7 +1154,6 @@ contract Payments is ReentrancyGuard {
     /// @return note Additional information about the settlement.
     function settleTerminatedRailWithoutValidation(uint256 railId)
         external
-        payable
         nonReentrant
         validateRailActive(railId)
         validateRailTerminated(railId)
@@ -1190,7 +1189,6 @@ contract Payments is ReentrancyGuard {
     /// @return note Additional information about the settlement (especially from validation).
     function settleRail(uint256 railId, uint256 untilEpoch)
         public
-        payable
         nonReentrant
         validateRailActive(railId)
         onlyRailParticipant(railId)
@@ -1785,6 +1783,12 @@ contract Payments is ReentrancyGuard {
         return (fundedUntilEpoch, currentFunds, availableFunds, currentLockupRate);
     }
 
+    /**
+     * @notice Burn FIL to buy the network fees
+     * @param token Which kind of fees to buy
+     * @param recipient To receive the purchased fees
+     * @param requested The exact amount of fees purchased
+     */
     function burnFILForFees(IERC20 token, address recipient, uint256 requested) external payable {
         Account storage fees = accounts[token][address(this)];
         uint256 available = fees.funds;
