@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {Test} from "forge-std/Test.sol";
+import {Errors} from "../src/Errors.sol";
 import {Payments} from "../src/Payments.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 
@@ -66,8 +67,24 @@ contract BurnTest is Test {
         (uint256 available,,,) = payments.accounts(TEST_TOKEN, address(payments));
         assertEq(available, 10 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
 
-        payments.burnFILForFees{value: AUCTION_START_PRICE}(TEST_TOKEN, helper.USER3(), available);
-        assertEq(available, TEST_TOKEN.balanceOf(helper.USER3()));
+        address recipient = helper.USER3();
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Errors.WithdrawAmountExceedsAccumulatedFees.selector, TEST_TOKEN, available, available + 1
+            )
+        );
+        payments.burnFILForFees{value: AUCTION_START_PRICE}(TEST_TOKEN, recipient, available + 1);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Errors.InsufficientNativeTokenForBurn.selector, AUCTION_START_PRICE - 1, AUCTION_START_PRICE
+            )
+        );
+        payments.burnFILForFees{value: AUCTION_START_PRICE - 1}(TEST_TOKEN, recipient, available);
+
+        payments.burnFILForFees{value: AUCTION_START_PRICE}(TEST_TOKEN, recipient, available);
+        assertEq(available, TEST_TOKEN.balanceOf(recipient));
 
         (uint256 availableAfter,,,) = payments.accounts(TEST_TOKEN, address(payments));
         assertEq(availableAfter, 0);
