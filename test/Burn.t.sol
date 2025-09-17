@@ -4,11 +4,14 @@ pragma solidity ^0.8.27;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {Test} from "forge-std/Test.sol";
+import {Dutch} from "../src/Dutch.sol";
 import {Errors} from "../src/Errors.sol";
 import {Payments} from "../src/Payments.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 
 contract BurnTest is Test {
+    using Dutch for uint256;
+
     PaymentsTestHelpers helper = new PaymentsTestHelpers();
     Payments payments;
     uint256 testTokenRailId;
@@ -56,13 +59,13 @@ contract BurnTest is Test {
         vm.prank(operator);
         payments.modifyRailPayment(testTokenRailId, newRate, 0);
 
-        vm.roll(block.number + 10);
+        vm.roll(vm.getBlockNumber() + 10);
 
         (uint256 availableBefore,,,) = payments.accounts(TEST_TOKEN, address(payments));
         assertEq(availableBefore, 0);
 
         vm.prank(payer);
-        payments.settleRail(testTokenRailId, block.number);
+        payments.settleRail(testTokenRailId, vm.getBlockNumber());
 
         (uint256 available,,,) = payments.accounts(TEST_TOKEN, address(payments));
         assertEq(available, 10 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
@@ -84,10 +87,63 @@ contract BurnTest is Test {
         payments.burnFILForFees{value: AUCTION_START_PRICE - 1}(TEST_TOKEN, recipient, available);
 
         payments.burnFILForFees{value: AUCTION_START_PRICE}(TEST_TOKEN, recipient, available);
-        assertEq(available, TEST_TOKEN.balanceOf(recipient));
+        uint256 received = TEST_TOKEN.balanceOf(recipient);
+        assertEq(available, received);
 
         (uint256 availableAfter,,,) = payments.accounts(TEST_TOKEN, address(payments));
         assertEq(availableAfter, 0);
+
+        uint256 oneTimePayment = 2 * 10 ** 16;
+
+        vm.prank(operator);
+        payments.modifyRailLockup(testTokenRailId, 20, oneTimePayment);
+
+        newRate = 11 * 10 ** 16;
+        vm.prank(operator);
+        payments.modifyRailPayment(testTokenRailId, newRate, oneTimePayment);
+
+        (uint256 startPrice, uint256 startTime) = payments.auctionInfo(TEST_TOKEN);
+        assertEq(startTime, block.timestamp);
+        assertEq(startPrice, AUCTION_START_PRICE * Dutch.RESET_FACTOR);
+
+        vm.roll(vm.getBlockNumber() + 17);
+
+        (available,,,) = payments.accounts(TEST_TOKEN, address(payments));
+        assertEq(available, oneTimePayment * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
+
+        vm.prank(payer);
+        payments.settleRail(testTokenRailId, vm.getBlockNumber());
+
+        (available,,,) = payments.accounts(TEST_TOKEN, address(payments));
+        assertEq(
+            available,
+            (17 * newRate + oneTimePayment) * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR()
+        );
+
+        vm.warp(startTime + 10.5 days);
+        uint256 expectedPrice = startPrice.decay(10.5 days);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Errors.WithdrawAmountExceedsAccumulatedFees.selector, TEST_TOKEN, available, available + 1
+            )
+        );
+        payments.burnFILForFees{value: expectedPrice}(TEST_TOKEN, recipient, available + 1);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.InsufficientNativeTokenForBurn.selector, expectedPrice - 1, expectedPrice)
+        );
+        payments.burnFILForFees{value: expectedPrice - 1}(TEST_TOKEN, recipient, available);
+
+        // can buy less than full amount
+        uint256 remainder = 113;
+        payments.burnFILForFees{value: expectedPrice}(TEST_TOKEN, recipient, available - remainder);
+
+        uint256 totalReceived = TEST_TOKEN.balanceOf(recipient);
+        assertEq(received + available - remainder, totalReceived);
+
+        (available,,,) = payments.accounts(TEST_TOKEN, address(payments));
+        assertEq(available, remainder);
     }
 
     function testNativeAutoBurned() public {
@@ -95,7 +151,7 @@ contract BurnTest is Test {
         vm.prank(operator);
         payments.modifyRailPayment(nativeTokenRailId, newRate, 0);
 
-        vm.roll(block.number + 12);
+        vm.roll(vm.getBlockNumber() + 12);
 
         assertEq(BURN_ADDRESS.balance, 0);
 
@@ -103,7 +159,7 @@ contract BurnTest is Test {
         assertEq(availableBefore, 0);
 
         vm.prank(payer);
-        payments.settleRail(nativeTokenRailId, block.number);
+        payments.settleRail(nativeTokenRailId, vm.getBlockNumber());
 
         (uint256 availableAfter,,,) = payments.accounts(NATIVE_TOKEN, address(payments));
         assertEq(availableAfter, 0);
