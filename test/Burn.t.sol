@@ -25,6 +25,7 @@ contract BurnTest is Test {
     address private payer;
     address private payee;
     address private operator;
+    address private recipient;
 
     function setUp() public {
         helper.setupStandardTestEnvironment();
@@ -34,6 +35,7 @@ contract BurnTest is Test {
         operator = helper.OPERATOR();
         payer = helper.USER1();
         payee = helper.USER2();
+        recipient = helper.USER3();
 
         vm.prank(payer);
         payments.setOperatorApproval(TEST_TOKEN, operator, true, 5 * 10 ** 18, 5 * 10 ** 18, 28800);
@@ -69,8 +71,6 @@ contract BurnTest is Test {
 
         (uint256 available,,,) = payments.accounts(TEST_TOKEN, address(payments));
         assertEq(available, 10 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
-
-        address recipient = helper.USER3();
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -171,5 +171,57 @@ contract BurnTest is Test {
         assertEq(
             BURN_ADDRESS.balance, 12 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR()
         );
+    }
+
+    function testBurnNoOp() public {
+        uint256 startPrice;
+        uint256 startTime;
+        for (uint256 i = 0; i < 5; i++) {
+            (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+            assertEq(startPrice.decay(vm.getBlockTimestamp() - startTime), 0);
+            payments.burnFILForFees(TEST_TOKEN, recipient, 0);
+            (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+            assertEq(startPrice, 0);
+            assertEq(startTime, vm.getBlockTimestamp());
+        }
+
+        uint256 newRate = 9 * 10 ** 16;
+        vm.prank(operator);
+        payments.modifyRailPayment(testTokenRailId, newRate, 0);
+        vm.roll(vm.getBlockNumber() + 10);
+        // verify that settling rail in this situation still restarts the auction
+        vm.prank(payer);
+        payments.settleRail(testTokenRailId, vm.getBlockNumber());
+        vm.prank(operator);
+        payments.modifyRailPayment(testTokenRailId, 0, 0);
+
+        (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+        assertEq(startPrice, AUCTION_START_PRICE);
+        assertEq(startTime, vm.getBlockTimestamp());
+
+        // wait until the price is 0 again
+        uint256 heatDeath = vm.getBlockTimestamp() + 10 ** 24;
+        vm.warp(heatDeath);
+
+        for (uint256 i = 0; i < 5; i++) {
+            (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+            assertEq(startPrice.decay(vm.getBlockTimestamp() - startTime), 0);
+            payments.burnFILForFees(TEST_TOKEN, recipient, 0);
+            (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+            assertEq(startPrice, 0);
+            assertEq(startTime, vm.getBlockTimestamp());
+        }
+
+        // verify that settling rail in this situation still restarts the auction
+        vm.roll(vm.getBlockNumber() + 1);
+        vm.prank(operator);
+        payments.modifyRailPayment(testTokenRailId, newRate, 0);
+        vm.roll(vm.getBlockNumber() + 10);
+        vm.prank(payer);
+        payments.settleRail(testTokenRailId, vm.getBlockNumber());
+
+        (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+        assertEq(startPrice, AUCTION_START_PRICE);
+        assertEq(startTime, vm.getBlockTimestamp());
     }
 }

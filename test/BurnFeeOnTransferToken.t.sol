@@ -67,5 +67,7 @@ contract BurnFeeOnTransferTokenTest is Test {
 
         (uint256 availableAfter,,,) = payments.accounts(feeToken, address(payments));
         assertEq(availableAfter, 0);
+
+        assertEq(BURN_ADDRESS.balance, AUCTION_START_PRICE);
     }
 }
