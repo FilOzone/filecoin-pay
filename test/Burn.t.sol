@@ -93,6 +93,8 @@ contract BurnTest is Test {
         (uint256 availableAfter,,,) = payments.accounts(TEST_TOKEN, address(payments));
         assertEq(availableAfter, 0);
 
+        assertEq(BURN_ADDRESS.balance, AUCTION_START_PRICE);
+
         uint256 oneTimePayment = 2 * 10 ** 16;
 
         vm.prank(operator);
@@ -120,8 +122,8 @@ contract BurnTest is Test {
             (17 * newRate + oneTimePayment) * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR()
         );
 
-        vm.warp(startTime + 10.5 days);
-        uint256 expectedPrice = startPrice.decay(10.5 days);
+        vm.warp(startTime + 11 days);
+        uint256 expectedPrice = startPrice.decay(11 days);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -144,6 +146,8 @@ contract BurnTest is Test {
 
         (available,,,) = payments.accounts(TEST_TOKEN, address(payments));
         assertEq(available, remainder);
+
+        assertEq(BURN_ADDRESS.balance, AUCTION_START_PRICE + expectedPrice);
     }
 
     function testNativeAutoBurned() public {
