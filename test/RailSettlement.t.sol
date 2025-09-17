@@ -688,7 +688,6 @@ contract RailSettlementTest is Test, BaseTestHelper {
         ) = payments.settleRail(railId, block.number);
         vm.stopPrank();
 
-
         // --- Verification ---
 
         // 1. Return values from settleRail
