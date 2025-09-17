@@ -1786,8 +1786,8 @@ contract Payments is ReentrancyGuard {
     /**
      * @notice Burn FIL to buy the network fees
      * @param token Which kind of fees to buy
-     * @param recipient To receive the purchased fees
-     * @param requested The exact amount of fees purchased
+     * @param recipient Receives the purchased fees
+     * @param requested Exact amount of fees transferred
      */
     function burnFILForFees(IERC20 token, address recipient, uint256 requested) external payable {
         Account storage fees = accounts[token][address(this)];
