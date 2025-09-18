@@ -45,6 +45,11 @@ The Filecoin Pay Payments contract enables ERC20 token payment flows through "ra
 - Filecoin Pay Contract (Alpha) is on Mainnet at `0x8c81C77E433725393Ba1eD5439ACdA098278eE1A`
   - **⚠️ WARNING (issued 2025-08-18): May be deprecated within 1-month without migration support. DO NOT use this deployment for production applications or store significant value.**
 
+## Security Audits
+
+The Filecoin-Pay contracts have undergone the following security audits:
+- [Zellic Security Audit (August 2025)](https://github.com/Zellic/publications/blob/master/Filecoin%20Services%20Payments%20-%20Zellic%20Audit%20Report.pdf)
+
 ## Key Concepts
 
 - **Account**: Represents a user's token balance and locked funds
