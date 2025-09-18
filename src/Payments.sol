@@ -45,8 +45,8 @@ contract Payments is ReentrancyGuard {
     uint256 public constant COMMISSION_MAX_BPS = 10000;
     uint88 private constant AUCTION_START_PRICE = 31.32 ether; // 31.32 FIL
 
-    uint256 public constant NETWORK_FEE_NUMERATOR = 5; // 0.5%
-    uint256 public constant NETWORK_FEE_DENOMINATOR = 1000;
+    uint256 public constant NETWORK_FEE_NUMERATOR = 1; // 0.5%
+    uint256 public constant NETWORK_FEE_DENOMINATOR = 200;
 
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
     IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
@@ -142,7 +142,8 @@ contract Payments is ReentrancyGuard {
     // Counter for generating unique rail IDs
     uint256 private _nextRailId = 1;
 
-    // token => owner => Account
+    // Internal balances
+    // The self-balance collects network fees
     mapping(IERC20 token => mapping(address owner => Account)) public accounts;
 
     // railId => Rail
