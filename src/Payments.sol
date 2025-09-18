@@ -801,7 +801,13 @@ contract Payments is ReentrancyGuard {
             (bool success,) = payable(to).call{value: amount}("");
             require(success, Errors.NativeTransferFailed(to, amount));
         } else {
+            uint256 balanceBefore = token.balanceOf(address(this));
             token.safeTransfer(to, amount);
+            uint256 balanceAfter = token.balanceOf(address(this));
+            uint256 balanceChange = balanceBefore - balanceAfter;
+            if (balanceChange > amount) {
+                account.funds -= balanceChange - amount;
+            }
         }
 
         emit WithdrawRecorded(token, msg.sender, to, amount);
