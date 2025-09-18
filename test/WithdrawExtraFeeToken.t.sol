@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {ExtraFeeToken} from "./mocks/ExtraFeeToken.sol";
+import {Errors} from "../src/Errors.sol";
 import {Payments} from "../src/Payments.sol";
 import {Test} from "forge-std/Test.sol";
 
@@ -64,5 +65,39 @@ contract WithdrawExtraFeeTokenTest is Test {
         assertEq(deposit, 0);
 
         assertEq(feeToken.balanceOf(address(payments)), 0);
+    }
+
+    function testWithdrawLockup() public {
+        Payments payments = new Payments();
+        uint256 transferFee = 10 ** 18;
+        ExtraFeeToken feeToken = new ExtraFeeToken(transferFee);
+        address user1 = vm.addr(0x1111);
+        feeToken.mint(user1, 10 ** 24);
+
+        vm.prank(user1);
+        feeToken.approve(address(payments), 10 ** 24);
+        vm.prank(user1);
+        payments.deposit(feeToken, user1, 10 ** 24 - transferFee);
+
+        (uint256 deposit,,,) = payments.accounts(feeToken, user1);
+        assertEq(deposit, 10 ** 24 - transferFee);
+
+        address operator = vm.addr(0x2222);
+
+        vm.prank(user1);
+        payments.setOperatorApproval(feeToken, operator, true, deposit, deposit, deposit);
+        vm.prank(operator);
+        uint256 railId = payments.createRail(feeToken, user1, operator, address(0), 0, address(0));
+
+        uint256 lockup = 10 ** 17;
+        vm.prank(operator);
+        payments.modifyRailLockup(railId, 0, lockup);
+
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientUnlockedFunds.selector, deposit - lockup, deposit));
+        payments.withdraw(feeToken, deposit - transferFee);
+
+        vm.prank(user1);
+        payments.withdraw(feeToken, deposit - transferFee - lockup);
     }
 }
