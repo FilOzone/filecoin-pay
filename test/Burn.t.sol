@@ -224,4 +224,35 @@ contract BurnTest is Test {
         assertEq(startPrice, AUCTION_START_PRICE);
         assertEq(startTime, vm.getBlockTimestamp());
     }
+
+    // test escalating fees up to uint max
+    function testInferno() public {
+        // start the auction
+        uint256 newRate = 19 * 10 ** 14;
+        vm.prank(operator);
+        payments.modifyRailPayment(testTokenRailId, newRate, 0);
+        vm.roll(vm.getBlockNumber() + 10);
+        vm.prank(payer);
+        payments.settleRail(testTokenRailId, vm.getBlockNumber());
+
+        uint256 startPrice;
+        uint256 startTime;
+        uint256 available;
+        uint256 expectedStartPrice = AUCTION_START_PRICE;
+        // repeatedly end the auction, multiplying the burn
+        for (uint256 i = 0; i < 256; i++) {
+            (available,,,) = payments.accounts(TEST_TOKEN, address(payments));
+            (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+            assertEq(startPrice, expectedStartPrice);
+            assertEq(startTime, vm.getBlockTimestamp());
+            vm.deal(recipient, startPrice);
+            vm.prank(recipient);
+            payments.burnFILForFees{value: startPrice}(TEST_TOKEN, recipient, available);
+            expectedStartPrice *= Dutch.RESET_FACTOR;
+            if (expectedStartPrice > 0xffffffffffffffffffffff) {
+                expectedStartPrice = 0xffffffffffffffffffffff;
+            }
+        }
+        assertEq(expectedStartPrice, 0xffffffffffffffffffffff);
+    }
 }

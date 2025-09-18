@@ -1799,7 +1799,11 @@ contract Payments is ReentrancyGuard {
         uint256 auctionPrice = uint256(auction.startPrice).decay(block.timestamp - auction.startTime);
         require(msg.value >= auctionPrice, Errors.InsufficientNativeTokenForBurn(msg.value, auctionPrice));
 
-        auction.startPrice = uint88(auctionPrice * Dutch.RESET_FACTOR);
+        auctionPrice *= Dutch.RESET_FACTOR;
+        if (auctionPrice > 0xffffffffffffffffffffff) {
+            auctionPrice = 0xffffffffffffffffffffff;
+        }
+        auction.startPrice = uint88(auctionPrice);
         auction.startTime = uint168(block.timestamp);
 
         fees.funds = available - requested;
