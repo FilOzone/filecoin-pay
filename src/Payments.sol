@@ -1813,9 +1813,8 @@ contract Payments is ReentrancyGuard {
 
             uint256 balanceChange = balanceBefore - balanceAfter;
             // handle fee-on-transfer and hidden-denominator tokens
-            if (balanceChange < requested) {
-                fees.funds += requested - balanceChange;
-            } else if (balanceChange > requested) {
+            // re-entry via erc20 transfer can burn unrequested fees, which is fine
+            if (balanceChange > requested) {
                 fees.funds -= balanceChange - requested;
             }
         }
