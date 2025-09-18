@@ -202,14 +202,6 @@ contract Payments is ReentrancyGuard {
         _;
     }
 
-    modifier onlyRailParticipant(uint256 railId) {
-        require(
-            rails[railId].from == msg.sender || rails[railId].operator == msg.sender || rails[railId].to == msg.sender,
-            Errors.OnlyRailParticipantAllowed(rails[railId].from, rails[railId].operator, rails[railId].to, msg.sender)
-        );
-        _;
-    }
-
     modifier validateRailNotTerminated(uint256 railId) {
         require(rails[railId].endEpoch == 0, Errors.RailAlreadyTerminated(railId));
         _;
@@ -1174,7 +1166,6 @@ contract Payments is ReentrancyGuard {
         payable
         nonReentrant
         validateRailActive(railId)
-        onlyRailParticipant(railId)
         settleAccountLockupBeforeAndAfterForRail(railId, false, 0)
         returns (
             uint256 totalSettledAmount,
