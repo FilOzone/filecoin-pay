@@ -72,12 +72,19 @@ contract WithdrawExtraFeeTokenTest is Test {
         uint256 transferFee = 10 ** 18;
         ExtraFeeToken feeToken = new ExtraFeeToken(transferFee);
         address user1 = vm.addr(0x1111);
+        address user2 = vm.addr(0x1112);
         feeToken.mint(user1, 10 ** 24);
+        feeToken.mint(user2, 10 ** 24);
 
         vm.prank(user1);
         feeToken.approve(address(payments), 10 ** 24);
         vm.prank(user1);
         payments.deposit(feeToken, user1, 10 ** 24 - transferFee);
+
+        vm.prank(user2);
+        feeToken.approve(address(payments), 10 ** 24);
+        vm.prank(user2);
+        payments.deposit(feeToken, user2, 10 ** 24 - transferFee);
 
         (uint256 deposit,,,) = payments.accounts(feeToken, user1);
         assertEq(deposit, 10 ** 24 - transferFee);
@@ -96,6 +103,14 @@ contract WithdrawExtraFeeTokenTest is Test {
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientUnlockedFunds.selector, deposit - lockup, deposit));
         payments.withdraw(feeToken, deposit);
+
+        vm.prank(user1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Errors.InsufficientUnlockedFunds.selector, deposit - lockup, deposit - lockup + transferFee
+            )
+        );
+        payments.withdraw(feeToken, deposit - lockup);
 
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientUnlockedFunds.selector, deposit - lockup, deposit));
