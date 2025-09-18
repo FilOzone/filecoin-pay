@@ -43,7 +43,7 @@ contract Payments is ReentrancyGuard {
 
     // Maximum commission rate in basis points (100% = 10000 BPS)
     uint256 public constant COMMISSION_MAX_BPS = 10000;
-    uint88 private constant AUCTION_START_PRICE = 0.332 ether; // 0.332 FIL
+    uint88 private constant AUCTION_START_PRICE = 10.4 ether; // 10.4 FIL
 
     uint256 public constant NETWORK_FEE_NUMERATOR = 5; // 0.5%
     uint256 public constant NETWORK_FEE_DENOMINATOR = 1000;

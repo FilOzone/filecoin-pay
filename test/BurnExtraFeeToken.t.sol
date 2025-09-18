@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
-import {MockFeeOnTransferTokenWithPermit} from "./mocks/MockFeeOnTransferTokenWithPermit.sol";
+import {ExtraFeeToken} from "./mocks/ExtraFeeToken.sol";
 import {Errors} from "../src/Errors.sol";
 import {Payments} from "../src/Payments.sol";
 import {Test} from "forge-std/Test.sol";
@@ -10,7 +10,7 @@ import {Test} from "forge-std/Test.sol";
 contract BurnFeeOnTransferTokenTest is Test {
     PaymentsTestHelpers helper = new PaymentsTestHelpers();
     Payments payments;
-    MockFeeOnTransferTokenWithPermit feeToken;
+    ExtraFeeToken feeToken;
 
     uint256 railId;
     uint256 private constant AUCTION_START_PRICE = 10.4 ether;
@@ -31,7 +31,7 @@ contract BurnFeeOnTransferTokenTest is Test {
     }
 
     function testBurnFeeOnTransferToken() public {
-        feeToken = new MockFeeOnTransferTokenWithPermit("FeeToken", "FEE", 100);
+        feeToken = new ExtraFeeToken(10 ** 16);
 
         feeToken.mint(payer, 50000 * 10 ** 18);
         vm.prank(payer);
@@ -40,7 +40,7 @@ contract BurnFeeOnTransferTokenTest is Test {
         payments.deposit(feeToken, payer, 500 * 10 ** 18);
 
         (uint256 balance,,,) = payments.accounts(feeToken, payer);
-        assertEq(balance, 495 * 10 ** 18);
+        assertEq(balance, 500 * 10 ** 18);
 
         vm.prank(payer);
         payments.setOperatorApproval(feeToken, operator, true, 50000 * 10 ** 18, 500 * 10 ** 18, 28800);
@@ -61,9 +61,16 @@ contract BurnFeeOnTransferTokenTest is Test {
         (uint256 available,,,) = payments.accounts(feeToken, address(payments));
         assertEq(available, 10 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
 
+        vm.expectRevert();
         payments.burnFILForFees{value: AUCTION_START_PRICE}(feeToken, recipient, available);
+
+        uint256 requested = available - feeToken.transferFee();
+        vm.expectRevert();
+        payments.burnFILForFees{value: AUCTION_START_PRICE}(feeToken, recipient, requested + 1);
+
+        payments.burnFILForFees{value: AUCTION_START_PRICE}(feeToken, recipient, requested);
         uint256 received = feeToken.balanceOf(recipient);
-        assertEq(available * 99 / 100, received);
+        assertEq(requested, received);
 
         (uint256 availableAfter,,,) = payments.accounts(feeToken, address(payments));
         assertEq(availableAfter, 0);

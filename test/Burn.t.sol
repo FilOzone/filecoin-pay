@@ -17,7 +17,7 @@ contract BurnTest is Test {
     uint256 testTokenRailId;
     uint256 nativeTokenRailId;
 
-    uint256 private constant AUCTION_START_PRICE = 0.083 ether;
+    uint256 private constant AUCTION_START_PRICE = 10.4 ether;
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
 
     IERC20 private TEST_TOKEN;
