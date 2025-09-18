@@ -95,6 +95,10 @@ contract WithdrawExtraFeeTokenTest is Test {
 
         vm.prank(user1);
         vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientUnlockedFunds.selector, deposit - lockup, deposit));
+        payments.withdraw(feeToken, deposit);
+
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientUnlockedFunds.selector, deposit - lockup, deposit));
         payments.withdraw(feeToken, deposit - transferFee);
 
         vm.prank(user1);
