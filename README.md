@@ -48,7 +48,7 @@ The Filecoin Pay Payments contract enables ERC20 token payment flows through "ra
 ## Security Audits
 
 The Filecoin-Pay contracts have undergone the following security audits:
-- [Zellic Security Audit (August 2025)](https://github.com/user-attachments/files/22399984/Filecoin.Services.Payments.-.Zellic.Audit.Report.1.pdf) // TODO: Update to Zellic GH link once published.
+- [Zellic Security Audit (August 2025)](https://github.com/Zellic/publications/blob/master/Filecoin%20Services%20Payments%20-%20Zellic%20Audit%20Report.pdf)
 
 ## Key Concepts
 
