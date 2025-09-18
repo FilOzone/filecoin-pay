@@ -1790,7 +1790,7 @@ contract Payments is ReentrancyGuard {
      * @param recipient Receives the purchased fees
      * @param requested Exact amount of fees transferred
      */
-    function burnFILForFees(IERC20 token, address recipient, uint256 requested) external payable {
+    function burnFILForFees(IERC20 token, address recipient, uint256 requested) external payable nonReentrant {
         Account storage fees = accounts[token][address(this)];
         uint256 available = fees.funds;
         require(available >= requested, Errors.WithdrawAmountExceedsAccumulatedFees(token, available, requested));
@@ -1818,7 +1818,6 @@ contract Payments is ReentrancyGuard {
 
             uint256 balanceChange = balanceBefore - balanceAfter;
             // handle fee-on-transfer and hidden-denominator tokens
-            // re-entry via erc20 transfer can burn unrequested fees, which is fine
             if (balanceChange > requested) {
                 fees.funds -= balanceChange - requested;
             }
