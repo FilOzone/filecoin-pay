@@ -13,7 +13,7 @@ contract BurnFeeOnTransferTokenTest is Test {
     MockFeeOnTransferTokenWithPermit feeToken;
 
     uint256 railId;
-    uint256 private constant AUCTION_START_PRICE = 10.4 ether;
+    uint256 private constant AUCTION_START_PRICE = 31.32 ether;
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
 
     address operator;
