@@ -8,7 +8,8 @@ import {Test} from "forge-std/Test.sol";
 contract WithdrawExtraFeeTokenTest is Test {
     function testWithdrawFeeToken() public {
         Payments payments = new Payments();
-        ExtraFeeToken feeToken = new ExtraFeeToken(10 ** 18);
+        uint256 transferFee = 10 ** 18;
+        ExtraFeeToken feeToken = new ExtraFeeToken(transferFee);
         address user1 = vm.addr(0x1111);
         address user2 = vm.addr(0x2222);
         feeToken.mint(user1, 10 ** 24);
@@ -37,10 +38,31 @@ contract WithdrawExtraFeeTokenTest is Test {
 
         vm.prank(user2);
         payments.deposit(feeToken, user2, 10 ** 23);
+        (deposit,,,) = payments.accounts(feeToken, user2);
+        assertEq(deposit, 10 ** 23);
+
+        assertEq(feeToken.balanceOf(address(payments)), 2 * 10 ** 23);
 
         // the other user's deposit should not allow the withdrawal
         vm.prank(user1);
         vm.expectRevert();
         payments.withdraw(feeToken, 10 ** 23);
+
+        // users can still withdraw their balance
+        (deposit,,,) = payments.accounts(feeToken, user1);
+        assertEq(deposit, 10 ** 23);
+        vm.prank(user1);
+        payments.withdraw(feeToken, deposit - transferFee);
+        (deposit,,,) = payments.accounts(feeToken, user1);
+        assertEq(deposit, 0);
+
+        (deposit,,,) = payments.accounts(feeToken, user2);
+        assertEq(deposit, 10 ** 23);
+        vm.prank(user2);
+        payments.withdraw(feeToken, deposit - transferFee);
+        (deposit,,,) = payments.accounts(feeToken, user2);
+        assertEq(deposit, 0);
+
+        assertEq(feeToken.balanceOf(address(payments)), 0);
     }
 }
