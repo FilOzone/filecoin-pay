@@ -7,8 +7,10 @@ import {UD60x18, uEXP2_MAX_INPUT, uUNIT} from "@prb-math/UD60x18.sol";
  * @dev Recurring dutch auction
  */
 library Dutch {
+    // Target 1 auction per week, on average
     uint256 public constant RESET_FACTOR = 4;
     uint256 public constant HALVING_INTERVAL = 3.5 days;
+
     uint256 public constant MAX_DECAY = uEXP2_MAX_INPUT * HALVING_INTERVAL / uUNIT;
 
     /**
