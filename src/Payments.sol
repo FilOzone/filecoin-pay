@@ -1663,42 +1663,52 @@ contract Payments is ReentrancyGuard {
      * @notice Gets all rails where the given address is the payer for a specific token.
      * @param payer The address of the payer to get rails for.
      * @param token The token address to filter rails by.
-     * @return Array of RailInfo structs containing rail IDs and termination status.
+     * @param offset The offset to start from.
+     * @param limit The limit to apply.
+     * @return results Array of RailInfo structs containing rail IDs and termination status.
+     * @return nextOffset The next offset to use for pagination.
+     * @return total The total number of rails.
      */
-    function getRailsForPayerAndToken(address payer, IERC20 token , uint256 offset , uint256 limit) external view returns (RailInfo[] memory) {
-        return _getRailsForAddressAndToken(payer, token, true , offset , limit);
+    function getRailsForPayerAndToken(address payer, IERC20 token , uint256 offset , uint256 limit) external view returns (RailInfo[] memory results, uint256 nextOffset , uint256 total) {
+        if (offset >= payerRails[token][payer].length) return (new RailInfo[](0), payerRails[token][payer].length, payerRails[token][payer].length);
+        if (limit == 0) limit = 1;
+        return _getRailsForAddressAndToken(payerRails[token][payer] , offset , limit);
     }
 
     /**
      * @notice Gets all rails where the given address is the payee for a specific token.
      * @param payee The address of the payee to get rails for.
      * @param token The token address to filter rails by.
-     * @return Array of RailInfo structs containing rail IDs and termination status.
+     * @param offset The offset to start from.
+     * @param limit The limit to apply.
+     * @return results Array of RailInfo structs containing rail IDs and termination status.
+     * @return nextOffset The next offset to use for pagination.
+     * @return total The total number of rails.
      */
-    function getRailsForPayeeAndToken(address payee, IERC20 token , uint256 offset , uint256 limit) external view returns (RailInfo[] memory) {
-        return _getRailsForAddressAndToken(payee, token, false , offset , limit);
+    function getRailsForPayeeAndToken(address payee, IERC20 token , uint256 offset , uint256 limit) external view returns (RailInfo[] memory results, uint256 nextOffset , uint256 total) {
+        if (offset >= payeeRails[token][payee].length) return (new RailInfo[](0), payeeRails[token][payee].length, payeeRails[token][payee].length);
+        if (limit == 0) limit = 1;
+        return _getRailsForAddressAndToken(payeeRails[token][payee] , offset , limit);
     }
 
     /**
      * @dev Internal function to get rails for either a payer or payee.
-     * @param addr The address to get rails for (either payer or payee).
-     * @param token The token address to filter rails by.
-     * @param isPayer If true, search for rails where addr is the payer, otherwise search for rails where addr is the payee.
-     * @return Array of RailInfo structs containing rail IDs and termination status.
+     * @param allRailIds The array of rail IDs to filter rails by.
+     * @param offset The offset to start from.
+     * @param limit The limit to apply.
+     * @return results Array of RailInfo structs containing rail IDs and termination status.
+     * @return nextOffset The next offset to use for pagination.
+     * @return total The total number of rails.
      */
-    function _getRailsForAddressAndToken(address addr, IERC20 token, bool isPayer , uint256 offset , uint256 limit)
+    function _getRailsForAddressAndToken(uint256[] storage allRailIds, uint256 offset , uint256 limit)
         internal
         view
-        returns (RailInfo[] memory , uint256 nextOffset , uint256 total)
+        returns (RailInfo[] memory results , uint256 nextOffset , uint256 total)
     {
-        if (offset >= rails.length) return (new RailInfo[](0), rails.length, rails.length);
-        if (limit == 0) limit = 1;
 
-        // Get the appropriate list of rails based on whether we're looking for payer or payee
-        uint256[] storage allRailIds = isPayer ? payerRails[token][addr] : payeeRails[token][addr];
         uint256 railsLength = allRailIds.length;
 
-        RailInfo[] memory results = new RailInfo[](railsLength);
+        results = new RailInfo[](railsLength);
         uint256 resultCount = 0;
         
         uint256 end = offset + limit > railsLength ? railsLength : offset + limit;
