@@ -11,6 +11,24 @@ All notable changes to this project will be documented in this file. The format 
 - IERC20 type improvements and label mapping keys ([#225](https://github.com/FilOzone/filecoin-pay/pull/225))
 
 ### Changed
+
+### Fixed
+
+## [0.5.0] - Filecoin-Pay Developer Preview
+
+⚠️ **DEPRECATION WARNING**: These contracts will be deprecated before October 15, 2025, due to 
+upcoming breaking changes. 
+
+**DO NOT use these deployments for production applications or to store significant value.** For updates and information about when the new set of Filecoin-Pay contracts will be deployed, track progress at: https://github.com/FilOzone/filecoin-pay/issues/232
+
+### Deployed
+- **Mainnet**: `[ADDRESS_TO_BE_UPDATED]`
+- **Calibration**: [0x1096025c9D6B29E12E2f04965F6E64d564Ce0750](https://calibration.filfox.info/en/address/0x1096025c9D6B29E12E2f04965F6E64d564Ce0750)
+
+### Added
+- Automated ABI publishing on release ([#208](https://github.com/FilOzone/filecoin-pay/pull/208))
+
+### Changed
 - Updated alpha mainnet contract address in documentation ([#213](https://github.com/FilOzone/filecoin-pay/pull/213))
 - Improved CI/CD workflow for project board management ([#215](https://github.com/FilOzone/filecoin-pay/pull/215))
 - Settlement operations now accessible by any participant (payer, payee, or operator) ([#219](https://github.com/FilOzone/filecoin-pay/pull/219), [#220](https://github.com/FilOzone/filecoin-pay/pull/220))
@@ -50,4 +68,3 @@ All notable changes to this project will be documented in this file. The format 
 - Core payment infrastructure
 - Basic rail management functionality
 - Account deposit/withdrawal system
-
