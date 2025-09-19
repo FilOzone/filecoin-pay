@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {MockFeeOnTransferTokenWithPermit} from "./mocks/MockFeeOnTransferTokenWithPermit.sol";
+import {FVMPrecompileMock} from "./helpers/FVMPrecompileMock.sol";
 import {Errors} from "../src/Errors.sol";
 import {Payments} from "../src/Payments.sol";
 import {Test} from "forge-std/Test.sol";
@@ -22,6 +23,10 @@ contract BurnFeeOnTransferTokenTest is Test {
     address recipient;
 
     function setUp() public {
+        // Deploy and install the FVM precompile mock
+        FVMPrecompileMock precompileMock = new FVMPrecompileMock();
+        vm.etch(0xfe00000000000000000000000000000000000005, address(precompileMock).code);
+
         helper.setupStandardTestEnvironment();
         payments = helper.payments();
         operator = helper.OPERATOR();
