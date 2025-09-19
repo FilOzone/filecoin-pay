@@ -1665,8 +1665,8 @@ contract Payments is ReentrancyGuard {
      * @param token The token address to filter rails by.
      * @return Array of RailInfo structs containing rail IDs and termination status.
      */
-    function getRailsForPayerAndToken(address payer, IERC20 token) external view returns (RailInfo[] memory) {
-        return _getRailsForAddressAndToken(payer, token, true);
+    function getRailsForPayerAndToken(address payer, IERC20 token , uint256 offset , uint256 limit) external view returns (RailInfo[] memory) {
+        return _getRailsForAddressAndToken(payer, token, true , offset , limit);
     }
 
     /**
@@ -1675,8 +1675,8 @@ contract Payments is ReentrancyGuard {
      * @param token The token address to filter rails by.
      * @return Array of RailInfo structs containing rail IDs and termination status.
      */
-    function getRailsForPayeeAndToken(address payee, IERC20 token) external view returns (RailInfo[] memory) {
-        return _getRailsForAddressAndToken(payee, token, false);
+    function getRailsForPayeeAndToken(address payee, IERC20 token , uint256 offset , uint256 limit) external view returns (RailInfo[] memory) {
+        return _getRailsForAddressAndToken(payee, token, false , offset , limit);
     }
 
     /**
@@ -1686,19 +1686,24 @@ contract Payments is ReentrancyGuard {
      * @param isPayer If true, search for rails where addr is the payer, otherwise search for rails where addr is the payee.
      * @return Array of RailInfo structs containing rail IDs and termination status.
      */
-    function _getRailsForAddressAndToken(address addr, IERC20 token, bool isPayer)
+    function _getRailsForAddressAndToken(address addr, IERC20 token, bool isPayer , uint256 offset , uint256 limit)
         internal
         view
-        returns (RailInfo[] memory)
+        returns (RailInfo[] memory , uint256 nextOffset , uint256 total)
     {
+        if (offset >= rails.length) return (new RailInfo[](0), rails.length, rails.length);
+        if (limit == 0) limit = 1;
+
         // Get the appropriate list of rails based on whether we're looking for payer or payee
         uint256[] storage allRailIds = isPayer ? payerRails[token][addr] : payeeRails[token][addr];
         uint256 railsLength = allRailIds.length;
 
         RailInfo[] memory results = new RailInfo[](railsLength);
         uint256 resultCount = 0;
+        
+        uint256 end = offset + limit > railsLength ? railsLength : offset + limit;
 
-        for (uint256 i = 0; i < railsLength; i++) {
+        for (uint256 i = offset; i < end; i++) {
             uint256 railId = allRailIds[i];
             Rail storage rail = rails[railId];
 
@@ -1715,7 +1720,7 @@ contract Payments is ReentrancyGuard {
             mstore(results, resultCount)
         }
 
-        return results;
+        return (results , end , railsLength);
     }
 
     /// @notice Number of pending rate-change entries for a rail
