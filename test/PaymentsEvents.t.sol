@@ -163,12 +163,17 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // calcualate expected values
         Payments.RailView memory rail = payments.getRail(railId);
         uint256 oneTimeAmount = 5 ether;
-        uint256 expectedOperatorCommission = (oneTimeAmount * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
-        uint256 expectedNetPayeeAmount = oneTimeAmount - expectedOperatorCommission;
+        uint256 expectedNetworkFee =
+            oneTimeAmount * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
+        uint256 expectedOperatorCommission =
+            ((oneTimeAmount - expectedNetworkFee) * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
+        uint256 expectedNetPayeeAmount = oneTimeAmount - expectedOperatorCommission - expectedNetworkFee;
 
         // expect the event to be emitted
         vm.expectEmit(true, false, false, true);
-        emit Payments.RailOneTimePaymentProcessed(railId, expectedNetPayeeAmount, expectedOperatorCommission);
+        emit Payments.RailOneTimePaymentProcessed(
+            railId, expectedNetPayeeAmount, expectedOperatorCommission, expectedNetworkFee
+        );
 
         // Execute one-time payment by calling modifyRailPayment with the current rate and a one-time payment amount
 
@@ -200,7 +205,6 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
      * @dev Test for RailSettled event
      */
     function testRailSettledEvent() public {
-        uint256 networkFee = payments.NETWORK_FEE();
         // Create and set up a rail
         railId = helper.createRail(USER1, USER2, OPERATOR, address(0), SERVICE_FEE_RECIPIENT);
 
@@ -217,17 +221,20 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // expected values
         Payments.RailView memory rail = payments.getRail(railId);
         uint256 totalSettledAmount = 5 * rail.paymentRate;
-        uint256 totalOperatorCommission = (totalSettledAmount * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
-        uint256 totalNetPayeeAmount = totalSettledAmount - totalOperatorCommission;
+        uint256 totalNetworkFee =
+            5 * rail.paymentRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
+        uint256 totalOperatorCommission =
+            ((totalSettledAmount - totalNetworkFee) * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
+        uint256 totalNetPayeeAmount = totalSettledAmount - totalNetworkFee - totalOperatorCommission;
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, false, true);
         emit Payments.RailSettled(
-            railId, totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, block.number
+            railId, totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, block.number
         );
 
         // Settle rail
-        payments.settleRail{value: networkFee}(railId, block.number);
+        payments.settleRail(railId, block.number);
 
         vm.stopPrank();
     }
@@ -263,7 +270,6 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
      * @dev Test for RailFinalized event
      */
     function testRailFinalizedEvent() public {
-        uint256 networkFee = payments.NETWORK_FEE();
         // Create and set up a rail
         railId = helper.createRail(USER1, USER2, OPERATOR, address(0), SERVICE_FEE_RECIPIENT);
 
@@ -290,7 +296,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         emit Payments.RailFinalized(railId);
 
         // Settle terminated rail to trigger finalization
-        payments.settleTerminatedRailWithoutValidation{value: networkFee}(railId);
+        payments.settleTerminatedRailWithoutValidation(railId);
 
         vm.stopPrank();
     }
