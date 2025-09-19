@@ -6,6 +6,7 @@ import "../src/Payments.sol";
 import "../test/mocks/MockERC20.sol";
 
 contract Profile is Script {
+    uint256 private constant AUCTION_START_PRICE = 31.32 ether;
     function createRail(address sender) public {
         vm.deal(sender, 2000 * 10 ** 18);
 
@@ -27,14 +28,14 @@ contract Profile is Script {
         uint256 lockupAllowance = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
         uint256 maxLockupPeriod = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-        payments.setOperatorApproval(address(token), operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
+        payments.setOperatorApproval(token, operator, true, rateAllowance, lockupAllowance, maxLockupPeriod);
 
-        uint256 railId = payments.createRail(address(token), from, to, validator, commissionRateBps, serviceFeeRecipient);
+        uint256 railId = payments.createRail(token, from, to, validator, commissionRateBps, serviceFeeRecipient);
 
         uint256 amount = 10**18;
         token.mint(from, amount);
         token.approve(address(payments), amount);
-        payments.deposit(address(token), from, amount);
+        payments.deposit(token, from, amount);
 
         // TODO depositWithPermit
         // TODO depositWithPermitAndApproveOperator
@@ -48,18 +49,18 @@ contract Profile is Script {
 
         payments.modifyRailPayment(railId, 10**3, 10**6);
 
-        payments.settleRail{value:payments.NETWORK_FEE()}(railId, block.number);
+        payments.settleRail(railId, block.number);
 
-        payments.withdraw(address(token), 10**6);
+        payments.withdraw(token, 10**6);
 
-        payments.withdrawTo(address(token), to, 10**6);
+        payments.withdrawTo(token, to, 10**6);
     }
 
     function settleRail(address sender, Payments payments, uint256 railId) public {
         vm.deal(sender, 2000 * 10 ** 18);
         vm.startBroadcast();
 
-        payments.settleRail{value:payments.NETWORK_FEE()}(railId, block.number);
+        payments.settleRail(railId, block.number);
     }
 
     function terminateRail(address sender, Payments payments, uint256 railId) public {
@@ -69,5 +70,20 @@ contract Profile is Script {
         payments.terminateRail(railId);
 
         // TODO settleTerminatedRailWithoutValidation
+    }
+
+    function endAuction(address sender, Payments payments, uint256 railId) public {
+        vm.deal(sender, 2000 * 10 ** 18);
+
+        Payments.RailView memory railView = payments.getRail(railId);
+        IERC20 token = railView.token;
+
+        (uint256 fullAmount,,,) = payments.accounts(token, address(payments));
+
+        address recipient = address(0x4a6f6B9fF1fc974096f9063a45Fd12bD5B928AD1);
+
+        vm.startBroadcast();
+
+        payments.burnFILForFees{value: AUCTION_START_PRICE}(token, recipient, fullAmount);
     }
 }
