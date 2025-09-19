@@ -53,6 +53,8 @@ contract Payments is ReentrancyGuard {
     uint256 public constant NETWORK_FEE_DENOMINATOR = 200;
 
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
+    address private constant CALL_ACTOR_ID_PRECOMPILE = 0xfe00000000000000000000000000000000000005;
+    uint64 private constant BURN_ACTOR_ID = 99;
     IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
 
     // Events
@@ -1086,8 +1088,7 @@ contract Payments is ReentrancyGuard {
         // ceil()
         fee = (amount * NETWORK_FEE_NUMERATOR + (NETWORK_FEE_DENOMINATOR - 1)) / NETWORK_FEE_DENOMINATOR;
         if (token == NATIVE_TOKEN) {
-            (bool success,) = BURN_ADDRESS.call{value: fee}("");
-            require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
+            burnViaPrecompile(fee);
         } else {
             accounts[token][address(this)].funds += fee;
             // start fee auction if necessary
@@ -1821,11 +1822,35 @@ contract Payments is ReentrancyGuard {
         auction.startPrice = uint88(auctionPrice);
         auction.startTime = uint168(block.timestamp);
 
-        (bool success,) = BURN_ADDRESS.call{value: msg.value}("");
-        require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
+        burnViaPrecompile(msg.value);
 
         uint256 actual = transferOut(token, recipient, requested);
         fees.funds = available - actual;
+    }
+
+    /**
+     * @dev Burns FIL using the FVM precompile to call the burn actor (ID 99)
+     * @param amount The amount of FIL to burn
+     */
+    function burnViaPrecompile(uint256 amount) private {
+        // Using simpler encoding to reduce stack usage
+        bytes memory empty = "";
+        bytes memory data = abi.encode(
+            uint64(0), // method 0
+            amount, // value
+            uint64(0), // flags
+            uint64(0), // codec
+            empty, // params
+            BURN_ACTOR_ID // actor ID
+        );
+
+        (bool ok, bytes memory ret) = CALL_ACTOR_ID_PRECOMPILE.delegatecall(data);
+        require(ok, "FVM burn failed");
+
+        // Exit code must be present and zero
+        require(ret.length >= 32, "FVM precompile invalid response");
+        int256 code = abi.decode(ret, (int256));
+        require(code == 0, Errors.NativeTransferFailed(BURN_ADDRESS, amount));
     }
 }
 

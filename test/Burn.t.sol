@@ -8,6 +8,7 @@ import {Dutch} from "../src/Dutch.sol";
 import {Errors} from "../src/Errors.sol";
 import {FIRST_AUCTION_START_PRICE, MAX_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
+import {FVMPrecompileMock} from "./helpers/FVMPrecompileMock.sol";
 
 contract BurnTest is Test {
     using Dutch for uint256;
@@ -27,6 +28,10 @@ contract BurnTest is Test {
     address private recipient;
 
     function setUp() public {
+        // Deploy and install the FVM precompile mock
+        FVMPrecompileMock precompileMock = new FVMPrecompileMock();
+        vm.etch(0xfe00000000000000000000000000000000000005, address(precompileMock).code);
+
         helper.setupStandardTestEnvironment();
         payments = helper.payments();
 
