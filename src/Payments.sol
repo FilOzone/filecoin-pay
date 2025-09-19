@@ -796,13 +796,20 @@ contract Payments is ReentrancyGuard {
         Account storage account = accounts[token][msg.sender];
         uint256 available = account.funds - account.lockupCurrent;
         require(amount <= available, Errors.InsufficientUnlockedFunds(available, amount));
-        account.funds -= amount;
         if (token == NATIVE_TOKEN) {
             (bool success,) = payable(to).call{value: amount}("");
             require(success, Errors.NativeTransferFailed(to, amount));
         } else {
+            uint256 balanceBefore = token.balanceOf(address(this));
             token.safeTransfer(to, amount);
+            uint256 balanceAfter = token.balanceOf(address(this));
+            uint256 balanceChange = balanceBefore - balanceAfter;
+            if (balanceChange > amount) {
+                amount = balanceChange;
+                require(amount <= available, Errors.InsufficientUnlockedFunds(available, amount));
+            }
         }
+        account.funds -= amount;
 
         emit WithdrawRecorded(token, msg.sender, to, amount);
     }
