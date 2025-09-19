@@ -15,14 +15,8 @@ contract FVMPrecompileMock {
      */
     fallback() external payable {
         // Decode the input parameters
-        (
-            uint64 method,
-            uint256 value,
-            uint64 flags,
-            uint64 codec,
-            bytes memory params,
-            uint64 actorId
-        ) = abi.decode(msg.data, (uint64, uint256, uint64, uint64, bytes, uint64));
+        (uint64 method, uint256 value, uint64 flags, uint64 codec, bytes memory params, uint64 actorId) =
+            abi.decode(msg.data, (uint64, uint256, uint64, uint64, bytes, uint64));
 
         // Verify this is a burn operation (actor ID 99, method 0)
         require(actorId == 99, "FVMPrecompileMock: Only burn actor (99) supported");
