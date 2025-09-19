@@ -471,29 +471,17 @@ contract Payments is ReentrancyGuard {
         validateNonZeroAddress(to, "to")
         settleAccountLockupBeforeAndAfter(token, to, false)
     {
-        // Create account if it doesn't exist
-        Account storage account = accounts[token][to];
-
-        uint256 actualAmount;
-
         // Transfer tokens from sender to contract
         if (token == NATIVE_TOKEN) {
             require(msg.value == amount, Errors.MustSendExactNativeAmount(amount, msg.value));
-            actualAmount = amount;
         } else {
             require(msg.value == 0, Errors.NativeTokenNotAccepted(msg.value));
-
-            // Use balance-before/balance-after accounting for fee-on-transfer tokens
-            uint256 balanceBefore = token.balanceOf(address(this));
-            token.safeTransferFrom(msg.sender, address(this), amount);
-            uint256 balanceAfter = token.balanceOf(address(this));
-
-            actualAmount = balanceAfter - balanceBefore;
+            amount = transferIn(token, msg.sender, amount);
         }
 
-        account.funds += actualAmount;
+        accounts[token][to].funds += amount;
 
-        emit DepositRecorded(token, msg.sender, to, actualAmount);
+        emit DepositRecorded(token, msg.sender, to, amount);
     }
 
     /**
@@ -531,18 +519,11 @@ contract Payments is ReentrancyGuard {
         // Use 'to' as the owner in permit call (the address that signed the permit)
         IERC20Permit(address(token)).permit(to, address(this), amount, deadline, v, r, s);
 
-        Account storage account = accounts[token][to];
+        amount = transferIn(token, to, amount);
 
-        // Use balance-before/balance-after accounting for fee-on-transfer tokens
-        uint256 balanceBefore = token.balanceOf(address(this));
-        token.safeTransferFrom(to, address(this), amount);
-        uint256 balanceAfter = token.balanceOf(address(this));
+        accounts[token][to].funds += amount;
 
-        uint256 actualAmount = balanceAfter - balanceBefore;
-
-        account.funds += actualAmount;
-
-        emit DepositRecorded(token, to, to, actualAmount);
+        emit DepositRecorded(token, to, to, amount);
     }
 
     /**
@@ -758,14 +739,13 @@ contract Payments is ReentrancyGuard {
         token.receiveWithAuthorization(to, address(this), amount, validAfter, validBefore, nonce, v, r, s);
 
         uint256 balanceAfter = token.balanceOf(address(this));
-        uint256 actualAmount = balanceAfter - balanceBefore;
+        amount = balanceAfter - balanceBefore;
 
         // Credit the beneficiary's internal account
-        Account storage account = accounts[token][to];
-        account.funds += actualAmount;
+        accounts[token][to].funds += amount;
 
         // Emit an event to record the deposit, marking it as made via an off-chain signature.
-        emit DepositRecorded(token, to, to, actualAmount);
+        emit DepositRecorded(token, to, to, amount);
     }
 
     /// @notice Withdraws tokens from the caller's account to the caller's account, up to the amount of currently available tokens (the tokens not currently locked in rails).
@@ -816,6 +796,13 @@ contract Payments is ReentrancyGuard {
         token.safeTransfer(to, amount);
         uint256 balanceAfter = token.balanceOf(address(this));
         actual = balanceBefore - balanceAfter;
+    }
+
+    function transferIn(IERC20 token, address from, uint256 amount) internal returns (uint256 actual) {
+        uint256 balanceBefore = token.balanceOf(address(this));
+        token.safeTransferFrom(from, address(this), amount);
+        uint256 balanceAfter = token.balanceOf(address(this));
+        actual = balanceAfter - balanceBefore;
     }
 
     /// @notice Create a new rail from `from` to `to`, operated by the caller.
