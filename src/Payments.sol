@@ -800,18 +800,22 @@ contract Payments is ReentrancyGuard {
             (bool success,) = payable(to).call{value: amount}("");
             require(success, Errors.NativeTransferFailed(to, amount));
         } else {
-            uint256 balanceBefore = token.balanceOf(address(this));
-            token.safeTransfer(to, amount);
-            uint256 balanceAfter = token.balanceOf(address(this));
-            uint256 balanceChange = balanceBefore - balanceAfter;
-            if (balanceChange > amount) {
-                amount = balanceChange;
+            uint256 actual = transferOut(token, to, amount);
+            if (actual > amount) {
+                amount = actual;
                 require(amount <= available, Errors.InsufficientUnlockedFunds(available, amount));
             }
         }
         account.funds -= amount;
 
         emit WithdrawRecorded(token, msg.sender, to, amount);
+    }
+
+    function transferOut(IERC20 token, address to, uint256 amount) internal returns (uint256 actual) {
+        uint256 balanceBefore = token.balanceOf(address(this));
+        token.safeTransfer(to, amount);
+        uint256 balanceAfter = token.balanceOf(address(this));
+        actual = balanceBefore - balanceAfter;
     }
 
     /// @notice Create a new rail from `from` to `to`, operated by the caller.
@@ -1813,21 +1817,13 @@ contract Payments is ReentrancyGuard {
         auction.startPrice = uint88(auctionPrice);
         auction.startTime = uint168(block.timestamp);
 
-        fees.funds = available - requested;
-
         (bool success,) = BURN_ADDRESS.call{value: msg.value}("");
         require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
 
         {
-            uint256 balanceBefore = token.balanceOf(address(this));
-            token.safeTransfer(recipient, requested);
-            uint256 balanceAfter = token.balanceOf(address(this));
-
-            uint256 balanceChange = balanceBefore - balanceAfter;
+            uint256 actual = transferOut(token, recipient, requested);
             // handle fee-on-transfer and hidden-denominator tokens
-            if (balanceChange > requested) {
-                fees.funds -= balanceChange - requested;
-            }
+            fees.funds = available - actual;
         }
     }
 }
