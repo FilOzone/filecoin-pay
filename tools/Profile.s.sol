@@ -3,6 +3,7 @@ pragma solidity ^0.8.30;
 import "forge-std/Script.sol";
 
 import "../src/Payments.sol";
+import "../test/helpers/FVMPrecompileMock.sol";
 import "../test/mocks/MockERC20.sol";
 
 contract Profile is Script {
@@ -81,6 +82,9 @@ contract Profile is Script {
         (uint256 fullAmount,,,) = payments.accounts(token, address(payments));
 
         address recipient = address(0x4a6f6B9fF1fc974096f9063a45Fd12bD5B928AD1);
+
+        FVMPrecompileMock precompileMock = new FVMPrecompileMock();
+        vm.etch(0xfe00000000000000000000000000000000000005, address(precompileMock).code);
 
         vm.startBroadcast();
 
