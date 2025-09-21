@@ -1669,10 +1669,13 @@ contract Payments is ReentrancyGuard {
      * @return nextOffset The next offset to use for pagination.
      * @return total The total number of rails.
      */
-    function getRailsForPayerAndToken(address payer, IERC20 token , uint256 offset , uint256 limit) external view returns (RailInfo[] memory results, uint256 nextOffset , uint256 total) {
-        if (offset >= payerRails[token][payer].length) return (new RailInfo[](0), payerRails[token][payer].length, payerRails[token][payer].length);
-        if (limit == 0) limit = 1;
-        return _getRailsForAddressAndToken(payerRails[token][payer] , offset , limit);
+    function getRailsForPayerAndToken(address payer, IERC20 token, uint256 offset, uint256 limit)
+        external
+        view
+        returns (RailInfo[] memory results, uint256 nextOffset, uint256 total)
+    {
+        if (limit == 0) limit = payerRails[token][payer].length;
+        return _getRailsForAddressAndToken(payerRails[token][payer], offset, limit);
     }
 
     /**
@@ -1685,10 +1688,13 @@ contract Payments is ReentrancyGuard {
      * @return nextOffset The next offset to use for pagination.
      * @return total The total number of rails.
      */
-    function getRailsForPayeeAndToken(address payee, IERC20 token , uint256 offset , uint256 limit) external view returns (RailInfo[] memory results, uint256 nextOffset , uint256 total) {
-        if (offset >= payeeRails[token][payee].length) return (new RailInfo[](0), payeeRails[token][payee].length, payeeRails[token][payee].length);
-        if (limit == 0) limit = 1;
-        return _getRailsForAddressAndToken(payeeRails[token][payee] , offset , limit);
+    function getRailsForPayeeAndToken(address payee, IERC20 token, uint256 offset, uint256 limit)
+        external
+        view
+        returns (RailInfo[] memory results, uint256 nextOffset, uint256 total)
+    {
+        if (limit == 0) limit = payeeRails[token][payee].length;
+        return _getRailsForAddressAndToken(payeeRails[token][payee], offset, limit);
     }
 
     /**
@@ -1700,18 +1706,18 @@ contract Payments is ReentrancyGuard {
      * @return nextOffset The next offset to use for pagination.
      * @return total The total number of rails.
      */
-    function _getRailsForAddressAndToken(uint256[] storage allRailIds, uint256 offset , uint256 limit)
+    function _getRailsForAddressAndToken(uint256[] storage allRailIds, uint256 offset, uint256 limit)
         internal
         view
-        returns (RailInfo[] memory results , uint256 nextOffset , uint256 total)
+        returns (RailInfo[] memory results, uint256 nextOffset, uint256 total)
     {
-
+        if (offset >= allRailIds.length) return (new RailInfo[](0), allRailIds.length, allRailIds.length);
         uint256 railsLength = allRailIds.length;
 
-        results = new RailInfo[](railsLength);
-        uint256 resultCount = 0;
-        
         uint256 end = offset + limit > railsLength ? railsLength : offset + limit;
+
+        results = new RailInfo[](end - offset);
+        uint256 resultCount = 0;
 
         for (uint256 i = offset; i < end; i++) {
             uint256 railId = allRailIds[i];
@@ -1730,7 +1736,7 @@ contract Payments is ReentrancyGuard {
             mstore(results, resultCount)
         }
 
-        return (results , end , railsLength);
+        return (results, end, railsLength);
     }
 
     /// @notice Number of pending rate-change entries for a rail
