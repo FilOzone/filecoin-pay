@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
-import "./Errors.sol";
-import "./RateChangeQueue.sol";
-import "./interfaces/IERC3009.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {Errors} from "./Errors.sol";
+import {RateChangeQueue} from "./RateChangeQueue.sol";
+import {IERC3009} from "./interfaces/IERC3009.sol";
 
 interface IValidator {
     struct ValidationResult {
@@ -181,7 +181,7 @@ contract Payments is ReentrancyGuard {
         string note;
     }
 
-    constructor() ReentrancyGuard() {
+    constructor() {
         _nextRailId = 1;
     }
 
