@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {Dutch} from "../src/Dutch.sol";
 import {Errors} from "../src/Errors.sol";
-import {FIRST_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
+import {FIRST_AUCTION_START_PRICE, MAX_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 
 contract BurnTest is Test {
@@ -248,10 +248,10 @@ contract BurnTest is Test {
             vm.prank(recipient);
             payments.burnFILForFees{value: startPrice}(TEST_TOKEN, recipient, available);
             expectedStartPrice *= Dutch.RESET_FACTOR;
-            if (expectedStartPrice > 0xffffffffffffffffffffff) {
-                expectedStartPrice = 0xffffffffffffffffffffff;
+            if (expectedStartPrice > MAX_AUCTION_START_PRICE) {
+                expectedStartPrice = MAX_AUCTION_START_PRICE;
             }
         }
-        assertEq(expectedStartPrice, 0xffffffffffffffffffffff);
+        assertEq(expectedStartPrice, MAX_AUCTION_START_PRICE);
     }
 }

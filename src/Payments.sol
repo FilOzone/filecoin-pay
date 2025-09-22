@@ -12,6 +12,9 @@ import "./Errors.sol";
 import "./RateChangeQueue.sol";
 import "./interfaces/IERC3009.sol";
 
+uint88 constant UINT88_MAX = 0xffffffffffffffffffffff;
+
+uint88 constant MAX_AUCTION_START_PRICE = UINT88_MAX; // 309485009.821345068724781055 FIL
 uint88 constant FIRST_AUCTION_START_PRICE = 31.32 ether; // 31.32 FIL
 
 interface IValidator {
@@ -1799,8 +1802,8 @@ contract Payments is ReentrancyGuard {
         require(msg.value >= auctionPrice, Errors.InsufficientNativeTokenForBurn(msg.value, auctionPrice));
 
         auctionPrice *= Dutch.RESET_FACTOR;
-        if (auctionPrice > 0xffffffffffffffffffffff) {
-            auctionPrice = 0xffffffffffffffffffffff;
+        if (auctionPrice > MAX_AUCTION_START_PRICE) {
+            auctionPrice = MAX_AUCTION_START_PRICE;
         }
         auction.startPrice = uint88(auctionPrice);
         auction.startTime = uint168(block.timestamp);
