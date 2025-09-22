@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {MockFeeOnTransferTokenWithPermit} from "./mocks/MockFeeOnTransferTokenWithPermit.sol";
 import {Errors} from "../src/Errors.sol";
-import {Payments} from "../src/Payments.sol";
+import {FIRST_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract BurnFeeOnTransferTokenTest is Test {
@@ -13,7 +13,6 @@ contract BurnFeeOnTransferTokenTest is Test {
     MockFeeOnTransferTokenWithPermit feeToken;
 
     uint256 railId;
-    uint256 private constant AUCTION_START_PRICE = 31.32 ether;
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
 
     address operator;
@@ -61,13 +60,13 @@ contract BurnFeeOnTransferTokenTest is Test {
         (uint256 available,,,) = payments.accounts(feeToken, address(payments));
         assertEq(available, 10 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
 
-        payments.burnFILForFees{value: AUCTION_START_PRICE}(feeToken, recipient, available);
+        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, available);
         uint256 received = feeToken.balanceOf(recipient);
         assertEq(available * 99 / 100, received);
 
         (uint256 availableAfter,,,) = payments.accounts(feeToken, address(payments));
         assertEq(availableAfter, 0);
 
-        assertEq(BURN_ADDRESS.balance, AUCTION_START_PRICE);
+        assertEq(BURN_ADDRESS.balance, FIRST_AUCTION_START_PRICE);
     }
 }

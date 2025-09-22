@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {Dutch} from "../src/Dutch.sol";
 import {Errors} from "../src/Errors.sol";
-import {Payments} from "../src/Payments.sol";
+import {FIRST_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 
 contract BurnTest is Test {
@@ -17,7 +17,6 @@ contract BurnTest is Test {
     uint256 testTokenRailId;
     uint256 nativeTokenRailId;
 
-    uint256 private constant AUCTION_START_PRICE = 31.32 ether;
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
 
     IERC20 private TEST_TOKEN;
@@ -77,23 +76,23 @@ contract BurnTest is Test {
                 Errors.WithdrawAmountExceedsAccumulatedFees.selector, TEST_TOKEN, available, available + 1
             )
         );
-        payments.burnFILForFees{value: AUCTION_START_PRICE}(TEST_TOKEN, recipient, available + 1);
+        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE}(TEST_TOKEN, recipient, available + 1);
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                Errors.InsufficientNativeTokenForBurn.selector, AUCTION_START_PRICE - 1, AUCTION_START_PRICE
+                Errors.InsufficientNativeTokenForBurn.selector, FIRST_AUCTION_START_PRICE - 1, FIRST_AUCTION_START_PRICE
             )
         );
-        payments.burnFILForFees{value: AUCTION_START_PRICE - 1}(TEST_TOKEN, recipient, available);
+        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE - 1}(TEST_TOKEN, recipient, available);
 
-        payments.burnFILForFees{value: AUCTION_START_PRICE}(TEST_TOKEN, recipient, available);
+        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE}(TEST_TOKEN, recipient, available);
         uint256 received = TEST_TOKEN.balanceOf(recipient);
         assertEq(available, received);
 
         (uint256 availableAfter,,,) = payments.accounts(TEST_TOKEN, address(payments));
         assertEq(availableAfter, 0);
 
-        assertEq(BURN_ADDRESS.balance, AUCTION_START_PRICE);
+        assertEq(BURN_ADDRESS.balance, FIRST_AUCTION_START_PRICE);
 
         uint256 oneTimePayment = 2 * 10 ** 16;
 
@@ -106,7 +105,7 @@ contract BurnTest is Test {
 
         (uint256 startPrice, uint256 startTime) = payments.auctionInfo(TEST_TOKEN);
         assertEq(startTime, block.timestamp);
-        assertEq(startPrice, AUCTION_START_PRICE * Dutch.RESET_FACTOR);
+        assertEq(startPrice, FIRST_AUCTION_START_PRICE * Dutch.RESET_FACTOR);
 
         vm.roll(vm.getBlockNumber() + 17);
 
@@ -147,7 +146,7 @@ contract BurnTest is Test {
         (available,,,) = payments.accounts(TEST_TOKEN, address(payments));
         assertEq(available, remainder);
 
-        assertEq(BURN_ADDRESS.balance, AUCTION_START_PRICE + expectedPrice);
+        assertEq(BURN_ADDRESS.balance, FIRST_AUCTION_START_PRICE + expectedPrice);
     }
 
     function testNativeAutoBurned() public {
@@ -196,7 +195,7 @@ contract BurnTest is Test {
         payments.modifyRailPayment(testTokenRailId, 0, 0);
 
         (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
-        assertEq(startPrice, AUCTION_START_PRICE);
+        assertEq(startPrice, FIRST_AUCTION_START_PRICE);
         assertEq(startTime, vm.getBlockTimestamp());
 
         // wait until the price is 0 again
@@ -221,7 +220,7 @@ contract BurnTest is Test {
         payments.settleRail(testTokenRailId, vm.getBlockNumber());
 
         (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
-        assertEq(startPrice, AUCTION_START_PRICE);
+        assertEq(startPrice, FIRST_AUCTION_START_PRICE);
         assertEq(startTime, vm.getBlockTimestamp());
     }
 
@@ -238,7 +237,7 @@ contract BurnTest is Test {
         uint256 startPrice;
         uint256 startTime;
         uint256 available;
-        uint256 expectedStartPrice = AUCTION_START_PRICE;
+        uint256 expectedStartPrice = FIRST_AUCTION_START_PRICE;
         // repeatedly end the auction, multiplying the burn
         for (uint256 i = 0; i < 256; i++) {
             (available,,,) = payments.accounts(TEST_TOKEN, address(payments));

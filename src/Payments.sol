@@ -12,6 +12,8 @@ import "./Errors.sol";
 import "./RateChangeQueue.sol";
 import "./interfaces/IERC3009.sol";
 
+uint88 constant FIRST_AUCTION_START_PRICE = 31.32 ether; // 31.32 FIL
+
 interface IValidator {
     struct ValidationResult {
         // The actual payment amount determined by the validator after validation of a rail during settlement
@@ -43,7 +45,6 @@ contract Payments is ReentrancyGuard {
 
     // Maximum commission rate in basis points (100% = 10000 BPS)
     uint256 public constant COMMISSION_MAX_BPS = 10000;
-    uint88 private constant AUCTION_START_PRICE = 31.32 ether; // 31.32 FIL
 
     uint256 public constant NETWORK_FEE_NUMERATOR = 1; // 0.5%
     uint256 public constant NETWORK_FEE_DENOMINATOR = 200;
@@ -1094,7 +1095,7 @@ contract Payments is ReentrancyGuard {
             // start fee auction if necessary
             AuctionInfo storage auction = auctionInfo[token];
             if (auction.startPrice == 0) {
-                auction.startPrice = AUCTION_START_PRICE;
+                auction.startPrice = FIRST_AUCTION_START_PRICE;
                 auction.startTime = uint168(block.timestamp);
             }
         }
