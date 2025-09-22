@@ -1834,13 +1834,12 @@ contract Payments is ReentrancyGuard {
      */
     function burnViaPrecompile(uint256 amount) private {
         // Using simpler encoding to reduce stack usage
-        bytes memory empty = "";
         bytes memory data = abi.encode(
             uint64(0), // method 0
             amount, // value
             uint64(0), // flags
             uint64(0), // codec
-            empty, // params
+            uint256(0), // params
             BURN_ACTOR_ID // actor ID
         );
 
