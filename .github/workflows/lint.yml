@@ -24,4 +24,4 @@ jobs:
 
       - name: Lint
         run: |
-          forge lint 2>&1 | read -t 0
+          forge lint 2>&1 | test ! -s /dev/stdin
