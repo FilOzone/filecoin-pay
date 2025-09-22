@@ -18,6 +18,10 @@ jobs:
         with:
           version: v1.2.3
 
-      - name: Lint
+      - name: fmt
         run: |
           forge fmt --check
+
+      - name: Lint
+        run: |
+          forge lint 2>&1 | read -t 0
