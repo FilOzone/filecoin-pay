@@ -10,7 +10,6 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {RailSettlementHelpers} from "./helpers/RailSettlementHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
-import {console} from "forge-std/console.sol";
 
 contract PayeeRailsTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;

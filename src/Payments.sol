@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
-
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Dutch} from "./Dutch.sol";
-import "./Errors.sol";
-import "./RateChangeQueue.sol";
-import "./interfaces/IERC3009.sol";
+import {Errors} from "./Errors.sol";
+import {RateChangeQueue} from "./RateChangeQueue.sol";
+import {IERC3009} from "./interfaces/IERC3009.sol";
 
 uint88 constant UINT88_MAX = 0xffffffffffffffffffffff;
 
@@ -204,7 +203,7 @@ contract Payments is ReentrancyGuard {
         string note;
     }
 
-    constructor() ReentrancyGuard() {
+    constructor() {
         _nextRailId = 1;
     }
 
@@ -797,6 +796,7 @@ contract Payments is ReentrancyGuard {
     }
 
     function transferOut(IERC20 token, address to, uint256 amount) internal returns (uint256 actual) {
+        // handle fee-on-transfer and hidden-denominator tokens
         uint256 balanceBefore = token.balanceOf(address(this));
         token.safeTransfer(to, amount);
         uint256 balanceAfter = token.balanceOf(address(this));
@@ -804,6 +804,7 @@ contract Payments is ReentrancyGuard {
     }
 
     function transferIn(IERC20 token, address from, uint256 amount) internal returns (uint256 actual) {
+        // handle fee-on-transfer and hidden-denominator tokens
         uint256 balanceBefore = token.balanceOf(address(this));
         token.safeTransferFrom(from, address(this), amount);
         uint256 balanceAfter = token.balanceOf(address(this));
@@ -1793,7 +1794,7 @@ contract Payments is ReentrancyGuard {
      * @param recipient Receives the purchased fees
      * @param requested Exact amount of fees transferred
      */
-    function burnFILForFees(IERC20 token, address recipient, uint256 requested) external payable nonReentrant {
+    function burnForFees(IERC20 token, address recipient, uint256 requested) external payable nonReentrant {
         Account storage fees = accounts[token][address(this)];
         uint256 available = fees.funds;
         require(available >= requested, Errors.WithdrawAmountExceedsAccumulatedFees(token, available, requested));
@@ -1814,7 +1815,6 @@ contract Payments is ReentrancyGuard {
 
         {
             uint256 actual = transferOut(token, recipient, requested);
-            // handle fee-on-transfer and hidden-denominator tokens
             fees.funds = available - actual;
         }
     }

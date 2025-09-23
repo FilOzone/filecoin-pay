@@ -3,7 +3,6 @@ pragma solidity ^0.8.27;
 
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {MockFeeOnTransferTokenWithPermit} from "./mocks/MockFeeOnTransferTokenWithPermit.sol";
-import {Errors} from "../src/Errors.sol";
 import {FIRST_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
 import {Test} from "forge-std/Test.sol";
 
@@ -60,7 +59,7 @@ contract BurnFeeOnTransferTokenTest is Test {
         (uint256 available,,,) = payments.accounts(feeToken, address(payments));
         assertEq(available, 10 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
 
-        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, available);
+        payments.burnForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, available);
         uint256 received = feeToken.balanceOf(recipient);
         assertEq(available * 99 / 100, received);
 

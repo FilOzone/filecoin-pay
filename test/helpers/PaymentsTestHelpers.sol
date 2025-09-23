@@ -3,7 +3,6 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {Payments} from "../../src/Payments.sol";
-import {IERC3009} from "../../src/interfaces/IERC3009.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {BaseTestHelper} from "./BaseTestHelper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -70,7 +69,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         returns (uint8 v, bytes32 r, bytes32 s)
     {
         uint256 nonce = MockERC20(testToken).nonces(owner);
-        bytes32 DOMAIN_SEPARATOR = MockERC20(testToken).DOMAIN_SEPARATOR();
+        bytes32 domainSeparator = MockERC20(testToken).DOMAIN_SEPARATOR();
 
         bytes32 structHash = keccak256(
             abi.encode(
@@ -83,7 +82,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
             )
         );
 
-        bytes32 digest = MessageHashUtils.toTypedDataHash(DOMAIN_SEPARATOR, structHash);
+        bytes32 digest = MessageHashUtils.toTypedDataHash(domainSeparator, structHash);
 
         // Sign the exact digest that `permit` expects using the provided private key
         (v, r, s) = vm.sign(privateKey, digest);
@@ -828,6 +827,11 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         vm.stopPrank();
     }
 
+    // keccak256("ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)")
+    bytes32 private constant RECEIVE_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+        "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
+    ); // as per EIP-3009
+
     function getReceiveWithAuthorizationSignature(
         uint256 privateKey,
         IERC20 token,
@@ -839,16 +843,12 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         bytes32 nonce
     ) public view returns (uint8 v, bytes32 r, bytes32 s) {
         // EIP-712 domain for ERC-3009 (MockERC20 defines its own domainSeparator unrelated to ERC2612)
-        bytes32 DOMAIN_SEPARATOR = MockERC20(address(token)).domainSeparator();
+        bytes32 domainSeparator = MockERC20(address(token)).domainSeparator();
 
-        // keccak256("ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)")
-        bytes32 TYPEHASH = keccak256(
-            "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
-        ); // as per EIP-3009
+        bytes32 structHash =
+            keccak256(abi.encode(RECEIVE_WITH_AUTHORIZATION_TYPEHASH, from, to, value, validAfter, validBefore, nonce));
 
-        bytes32 structHash = keccak256(abi.encode(TYPEHASH, from, to, value, validAfter, validBefore, nonce));
-
-        bytes32 digest = MessageHashUtils.toTypedDataHash(DOMAIN_SEPARATOR, structHash);
+        bytes32 digest = MessageHashUtils.toTypedDataHash(domainSeparator, structHash);
 
         (v, r, s) = vm.sign(privateKey, digest);
     }

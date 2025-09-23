@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
-import {Test, Vm} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {Payments} from "../src/Payments.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @title PaymentsEventsTest

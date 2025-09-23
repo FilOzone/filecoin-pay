@@ -3,7 +3,6 @@ pragma solidity ^0.8.27;
 
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {ExtraFeeToken} from "./mocks/ExtraFeeToken.sol";
-import {Errors} from "../src/Errors.sol";
 import {FIRST_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
 import {Test} from "forge-std/Test.sol";
 
@@ -61,13 +60,13 @@ contract BurnFeeOnTransferTokenTest is Test {
         assertEq(available, 10 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
 
         vm.expectRevert();
-        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, available);
+        payments.burnForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, available);
 
         uint256 requested = available - feeToken.transferFee();
         vm.expectRevert();
-        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, requested + 1);
+        payments.burnForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, requested + 1);
 
-        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, requested);
+        payments.burnForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, requested);
         uint256 received = feeToken.balanceOf(recipient);
         assertEq(requested, received);
 

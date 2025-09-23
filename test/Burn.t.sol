@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
+
 import {Dutch} from "../src/Dutch.sol";
 import {Errors} from "../src/Errors.sol";
 import {FIRST_AUCTION_START_PRICE, MAX_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
@@ -19,7 +19,7 @@ contract BurnTest is Test {
 
     address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
 
-    IERC20 private TEST_TOKEN;
+    IERC20 private testToken;
     IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
     address private payer;
     address private payee;
@@ -30,26 +30,26 @@ contract BurnTest is Test {
         helper.setupStandardTestEnvironment();
         payments = helper.payments();
 
-        TEST_TOKEN = helper.testToken();
+        testToken = helper.testToken();
         operator = helper.OPERATOR();
         payer = helper.USER1();
         payee = helper.USER2();
         recipient = helper.USER3();
 
         vm.prank(payer);
-        payments.setOperatorApproval(TEST_TOKEN, operator, true, 5 * 10 ** 18, 5 * 10 ** 18, 28800);
+        payments.setOperatorApproval(testToken, operator, true, 5 * 10 ** 18, 5 * 10 ** 18, 28800);
         vm.prank(payer);
         payments.setOperatorApproval(NATIVE_TOKEN, operator, true, 5 * 10 ** 18, 5 * 10 ** 18, 28800);
 
         vm.prank(operator);
-        testTokenRailId = payments.createRail(TEST_TOKEN, payer, payee, address(0), 0, address(0));
+        testTokenRailId = payments.createRail(testToken, payer, payee, address(0), 0, address(0));
         vm.prank(operator);
         nativeTokenRailId = payments.createRail(NATIVE_TOKEN, payer, payee, address(0), 0, address(0));
 
         vm.prank(payer);
-        TEST_TOKEN.approve(address(payments), 5 * 10 ** 18);
+        testToken.approve(address(payments), 5 * 10 ** 18);
         vm.prank(payer);
-        payments.deposit(TEST_TOKEN, payer, 5 * 10 ** 18);
+        payments.deposit(testToken, payer, 5 * 10 ** 18);
 
         vm.prank(payer);
         payments.deposit{value: 5 * 10 ** 18}(NATIVE_TOKEN, payer, 5 * 10 ** 18);
@@ -62,34 +62,34 @@ contract BurnTest is Test {
 
         vm.roll(vm.getBlockNumber() + 10);
 
-        (uint256 availableBefore,,,) = payments.accounts(TEST_TOKEN, address(payments));
+        (uint256 availableBefore,,,) = payments.accounts(testToken, address(payments));
         assertEq(availableBefore, 0);
 
         vm.prank(payer);
         payments.settleRail(testTokenRailId, vm.getBlockNumber());
 
-        (uint256 available,,,) = payments.accounts(TEST_TOKEN, address(payments));
+        (uint256 available,,,) = payments.accounts(testToken, address(payments));
         assertEq(available, 10 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                Errors.WithdrawAmountExceedsAccumulatedFees.selector, TEST_TOKEN, available, available + 1
+                Errors.WithdrawAmountExceedsAccumulatedFees.selector, testToken, available, available + 1
             )
         );
-        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE}(TEST_TOKEN, recipient, available + 1);
+        payments.burnForFees{value: FIRST_AUCTION_START_PRICE}(testToken, recipient, available + 1);
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 Errors.InsufficientNativeTokenForBurn.selector, FIRST_AUCTION_START_PRICE - 1, FIRST_AUCTION_START_PRICE
             )
         );
-        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE - 1}(TEST_TOKEN, recipient, available);
+        payments.burnForFees{value: FIRST_AUCTION_START_PRICE - 1}(testToken, recipient, available);
 
-        payments.burnFILForFees{value: FIRST_AUCTION_START_PRICE}(TEST_TOKEN, recipient, available);
-        uint256 received = TEST_TOKEN.balanceOf(recipient);
+        payments.burnForFees{value: FIRST_AUCTION_START_PRICE}(testToken, recipient, available);
+        uint256 received = testToken.balanceOf(recipient);
         assertEq(available, received);
 
-        (uint256 availableAfter,,,) = payments.accounts(TEST_TOKEN, address(payments));
+        (uint256 availableAfter,,,) = payments.accounts(testToken, address(payments));
         assertEq(availableAfter, 0);
 
         assertEq(BURN_ADDRESS.balance, FIRST_AUCTION_START_PRICE);
@@ -103,19 +103,19 @@ contract BurnTest is Test {
         vm.prank(operator);
         payments.modifyRailPayment(testTokenRailId, newRate, oneTimePayment);
 
-        (uint256 startPrice, uint256 startTime) = payments.auctionInfo(TEST_TOKEN);
+        (uint256 startPrice, uint256 startTime) = payments.auctionInfo(testToken);
         assertEq(startTime, block.timestamp);
         assertEq(startPrice, FIRST_AUCTION_START_PRICE * Dutch.RESET_FACTOR);
 
         vm.roll(vm.getBlockNumber() + 17);
 
-        (available,,,) = payments.accounts(TEST_TOKEN, address(payments));
+        (available,,,) = payments.accounts(testToken, address(payments));
         assertEq(available, oneTimePayment * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
 
         vm.prank(payer);
         payments.settleRail(testTokenRailId, vm.getBlockNumber());
 
-        (available,,,) = payments.accounts(TEST_TOKEN, address(payments));
+        (available,,,) = payments.accounts(testToken, address(payments));
         assertEq(
             available,
             (17 * newRate + oneTimePayment) * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR()
@@ -126,24 +126,24 @@ contract BurnTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                Errors.WithdrawAmountExceedsAccumulatedFees.selector, TEST_TOKEN, available, available + 1
+                Errors.WithdrawAmountExceedsAccumulatedFees.selector, testToken, available, available + 1
             )
         );
-        payments.burnFILForFees{value: expectedPrice}(TEST_TOKEN, recipient, available + 1);
+        payments.burnForFees{value: expectedPrice}(testToken, recipient, available + 1);
 
         vm.expectRevert(
             abi.encodeWithSelector(Errors.InsufficientNativeTokenForBurn.selector, expectedPrice - 1, expectedPrice)
         );
-        payments.burnFILForFees{value: expectedPrice - 1}(TEST_TOKEN, recipient, available);
+        payments.burnForFees{value: expectedPrice - 1}(testToken, recipient, available);
 
         // can buy less than full amount
         uint256 remainder = 113;
-        payments.burnFILForFees{value: expectedPrice}(TEST_TOKEN, recipient, available - remainder);
+        payments.burnForFees{value: expectedPrice}(testToken, recipient, available - remainder);
 
-        uint256 totalReceived = TEST_TOKEN.balanceOf(recipient);
+        uint256 totalReceived = testToken.balanceOf(recipient);
         assertEq(received + available - remainder, totalReceived);
 
-        (available,,,) = payments.accounts(TEST_TOKEN, address(payments));
+        (available,,,) = payments.accounts(testToken, address(payments));
         assertEq(available, remainder);
 
         assertEq(BURN_ADDRESS.balance, FIRST_AUCTION_START_PRICE + expectedPrice);
@@ -176,10 +176,10 @@ contract BurnTest is Test {
         uint256 startPrice;
         uint256 startTime;
         for (uint256 i = 0; i < 5; i++) {
-            (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+            (startPrice, startTime) = payments.auctionInfo(testToken);
             assertEq(startPrice.decay(vm.getBlockTimestamp() - startTime), 0);
-            payments.burnFILForFees(TEST_TOKEN, recipient, 0);
-            (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+            payments.burnForFees(testToken, recipient, 0);
+            (startPrice, startTime) = payments.auctionInfo(testToken);
             assertEq(startPrice, 0);
             assertEq(startTime, vm.getBlockTimestamp());
         }
@@ -194,7 +194,7 @@ contract BurnTest is Test {
         vm.prank(operator);
         payments.modifyRailPayment(testTokenRailId, 0, 0);
 
-        (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+        (startPrice, startTime) = payments.auctionInfo(testToken);
         assertEq(startPrice, FIRST_AUCTION_START_PRICE);
         assertEq(startTime, vm.getBlockTimestamp());
 
@@ -203,10 +203,10 @@ contract BurnTest is Test {
         vm.warp(heatDeath);
 
         for (uint256 i = 0; i < 5; i++) {
-            (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+            (startPrice, startTime) = payments.auctionInfo(testToken);
             assertEq(startPrice.decay(vm.getBlockTimestamp() - startTime), 0);
-            payments.burnFILForFees(TEST_TOKEN, recipient, 0);
-            (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+            payments.burnForFees(testToken, recipient, 0);
+            (startPrice, startTime) = payments.auctionInfo(testToken);
             assertEq(startPrice, 0);
             assertEq(startTime, vm.getBlockTimestamp());
         }
@@ -219,7 +219,7 @@ contract BurnTest is Test {
         vm.prank(payer);
         payments.settleRail(testTokenRailId, vm.getBlockNumber());
 
-        (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+        (startPrice, startTime) = payments.auctionInfo(testToken);
         assertEq(startPrice, FIRST_AUCTION_START_PRICE);
         assertEq(startTime, vm.getBlockTimestamp());
     }
@@ -240,13 +240,13 @@ contract BurnTest is Test {
         uint256 expectedStartPrice = FIRST_AUCTION_START_PRICE;
         // repeatedly end the auction, multiplying the burn
         for (uint256 i = 0; i < 256; i++) {
-            (available,,,) = payments.accounts(TEST_TOKEN, address(payments));
-            (startPrice, startTime) = payments.auctionInfo(TEST_TOKEN);
+            (available,,,) = payments.accounts(testToken, address(payments));
+            (startPrice, startTime) = payments.auctionInfo(testToken);
             assertEq(startPrice, expectedStartPrice);
             assertEq(startTime, vm.getBlockTimestamp());
             vm.deal(recipient, startPrice);
             vm.prank(recipient);
-            payments.burnFILForFees{value: startPrice}(TEST_TOKEN, recipient, available);
+            payments.burnForFees{value: startPrice}(testToken, recipient, available);
             expectedStartPrice *= Dutch.RESET_FACTOR;
             if (expectedStartPrice > MAX_AUCTION_START_PRICE) {
                 expectedStartPrice = MAX_AUCTION_START_PRICE;
