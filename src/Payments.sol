@@ -1813,10 +1813,8 @@ contract Payments is ReentrancyGuard {
         (bool success,) = BURN_ADDRESS.call{value: msg.value}("");
         require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
 
-        {
-            uint256 actual = transferOut(token, recipient, requested);
-            fees.funds = available - actual;
-        }
+        uint256 actual = transferOut(token, recipient, requested);
+        fees.funds = available - actual;
     }
 }
 
