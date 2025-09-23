@@ -189,7 +189,7 @@ contract Payments is ReentrancyGuard {
 
     // pack into one storage slot
     struct AuctionInfo {
-        uint88 startPrice; // highest possible price is 309m FIL
+        uint88 startPrice; // highest possible price is MAX_AUCTION_START_PRICE
         uint168 startTime;
     }
 
