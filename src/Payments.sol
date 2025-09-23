@@ -786,7 +786,7 @@ contract Payments is ReentrancyGuard {
             require(success, Errors.NativeTransferFailed(to, amount));
         } else {
             uint256 actual = transferOut(token, to, amount);
-            if (actual > amount) {
+            if (amount != actual) {
                 amount = actual;
                 require(amount <= available, Errors.InsufficientUnlockedFunds(available, amount));
             }
