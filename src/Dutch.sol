@@ -15,8 +15,9 @@ library Dutch {
 
     /**
      * @notice Exponential decay by 1/4 per week
-     * @param startPrice The initial price at elapsed = 0
-     * @param elapsed The amount of time since the startPrice
+     * @param startPrice The initial price in attoFIL at elapsed = 0
+     * @param elapsed Seconds of time since the startPrice
+     * @return price The decayed price in attoFIL
      */
     function decay(uint256 startPrice, uint256 elapsed) internal pure returns (uint256 price) {
         if (elapsed > MAX_DECAY) {
