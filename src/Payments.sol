@@ -1674,7 +1674,6 @@ contract Payments is ReentrancyGuard {
         view
         returns (RailInfo[] memory results, uint256 nextOffset, uint256 total)
     {
-        if (limit == 0) limit = payerRails[token][payer].length;
         return _getRailsForAddressAndToken(payerRails[token][payer], offset, limit);
     }
 
@@ -1693,7 +1692,6 @@ contract Payments is ReentrancyGuard {
         view
         returns (RailInfo[] memory results, uint256 nextOffset, uint256 total)
     {
-        if (limit == 0) limit = payeeRails[token][payee].length;
         return _getRailsForAddressAndToken(payeeRails[token][payee], offset, limit);
     }
 
@@ -1711,9 +1709,9 @@ contract Payments is ReentrancyGuard {
         view
         returns (RailInfo[] memory results, uint256 nextOffset, uint256 total)
     {
-        if (offset >= allRailIds.length) return (new RailInfo[](0), allRailIds.length, allRailIds.length);
         uint256 railsLength = allRailIds.length;
-
+        if (limit == 0) limit = railsLength;
+        if (offset >= railsLength) return (new RailInfo[](0), railsLength, railsLength);
         uint256 end = offset + limit > railsLength ? railsLength : offset + limit;
 
         results = new RailInfo[](end - offset);
