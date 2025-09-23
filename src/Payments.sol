@@ -187,6 +187,7 @@ contract Payments is ReentrancyGuard {
     // token => payer => array of railIds
     mapping(IERC20 token => mapping(address payer => uint256[])) private payerRails;
 
+    // pack into one storage slot
     struct AuctionInfo {
         uint88 startPrice; // highest possible price is 309m FIL
         uint168 startTime;
