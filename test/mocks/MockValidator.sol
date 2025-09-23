@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
-import {Payments, IValidator} from "../../src/Payments.sol";
+import {IValidator} from "../../src/Payments.sol";
 
 contract MockValidator is IValidator {
     enum ValidatorMode {

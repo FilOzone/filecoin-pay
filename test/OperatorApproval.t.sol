@@ -9,7 +9,6 @@ import {Payments} from "../src/Payments.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
-import {console} from "forge-std/console.sol";
 import {Errors} from "../src/Errors.sol";
 
 contract OperatorApprovalTest is Test, BaseTestHelper {
