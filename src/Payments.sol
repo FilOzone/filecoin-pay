@@ -1834,22 +1834,23 @@ contract Payments is ReentrancyGuard {
      */
     function burnViaPrecompile(uint256 amount) private {
         // Using simpler encoding to reduce stack usage
-        bytes memory data = abi.encode(
-            uint64(0), // method 0
-            amount, // value
-            uint64(0), // flags
-            uint64(0), // codec
-            uint256(0), // params
-            BURN_ACTOR_ID // actor ID
-        );
+        bool ok;
+        assembly ("memory-safe") {
+            let fmp := mload(0x40)
+            mstore(fmp, 0) // method 0
+            mstore(add(32, fmp), amount) // value
+            mstore(add(64, fmp), 0) // flags
+            mstore(add(96, fmp), 0) // codec
+            mstore(add(128, fmp), 0) // params
+            mstore(add(160, fmp), BURN_ACTOR_ID) // actor ID
+            ok :=
+                and(
+                    and(gt(returndatasize(), 31), eq(mload(fmp), 0)),
+                    delegatecall(gas(), CALL_ACTOR_ID_PRECOMPILE, fmp, 192, fmp, 192)
+                )
+        }
 
-        (bool ok, bytes memory ret) = CALL_ACTOR_ID_PRECOMPILE.delegatecall(data);
-        require(ok, "FVM burn failed");
-
-        // Exit code must be present and zero
-        require(ret.length >= 32, "FVM precompile invalid response");
-        int256 code = abi.decode(ret, (int256));
-        require(code == 0, Errors.NativeTransferFailed(BURN_ADDRESS, amount));
+        require(ok, Errors.NativeTransferFailed(BURN_ADDRESS, amount));
     }
 }
 
