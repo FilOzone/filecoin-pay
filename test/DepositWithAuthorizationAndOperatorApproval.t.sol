@@ -95,7 +95,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         );
 
         // Corrupt r
-        r = bytes32(uint256(r) ^ 1);
+        r = bytes32(uint256(r) ^ 3);
 
         vm.startPrank(from);
         vm.expectRevert("EIP712: invalid signature"); // invalid signature should revert

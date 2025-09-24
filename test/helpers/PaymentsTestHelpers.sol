@@ -599,17 +599,18 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
             "Client funds not reduced correctly after one-time payment"
         );
 
+        uint256 networkFee = oneTimeAmount * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
         // Get commission rate from rail
         uint256 commissionRate = railBefore.commissionRateBps;
         uint256 operatorCommission = 0;
 
         if (commissionRate > 0) {
-            operatorCommission = (oneTimeAmount * commissionRate) / payments.COMMISSION_MAX_BPS();
+            operatorCommission = ((oneTimeAmount - networkFee) * commissionRate) / payments.COMMISSION_MAX_BPS();
             // Verify operator commission is non-zero when commission rate is non-zero
             assertGt(operatorCommission, 0, "Operator commission should be non-zero when commission rate is non-zero");
         }
 
-        uint256 netPayeeAmount = oneTimeAmount - operatorCommission;
+        uint256 netPayeeAmount = oneTimeAmount - networkFee - operatorCommission;
 
         assertEq(
             recipientAfter.funds,

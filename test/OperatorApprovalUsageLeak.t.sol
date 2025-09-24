@@ -83,8 +83,7 @@ contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
 
         // Settle the rail completely - this will trigger finalizeTerminatedRail
         vm.startPrank(USER2); // Payee can settle
-        (uint256 settledAmount,,, uint256 finalEpoch,) =
-            payments.settleRail{value: payments.NETWORK_FEE()}(railId, endEpoch);
+        (uint256 settledAmount,,,, uint256 finalEpoch,) = payments.settleRail(railId, endEpoch);
         vm.stopPrank();
 
         console.log("\nAfter settlement:");
@@ -140,7 +139,7 @@ contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
 
             // Settle to trigger finalization
             vm.startPrank(USER2);
-            payments.settleRail{value: payments.NETWORK_FEE()}(railId, endEpoch);
+            payments.settleRail(railId, endEpoch);
             vm.stopPrank();
 
             // Track leaked usage
