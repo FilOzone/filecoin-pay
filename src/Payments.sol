@@ -1664,7 +1664,7 @@ contract Payments is ReentrancyGuard {
      * @param payer The address of the payer to get rails for.
      * @param token The token address to filter rails by.
      * @param offset The offset to start from.
-     * @param limit The limit to apply.
+     * @param limit Maximum number of entries to return
      * @return results Array of RailInfo structs containing rail IDs and termination status.
      * @return nextOffset The next offset to use for pagination.
      * @return total The total number of rails.
@@ -1682,7 +1682,7 @@ contract Payments is ReentrancyGuard {
      * @param payee The address of the payee to get rails for.
      * @param token The token address to filter rails by.
      * @param offset The offset to start from.
-     * @param limit The limit to apply.
+     * @param limit Maximum number of entries to return
      * @return results Array of RailInfo structs containing rail IDs and termination status.
      * @return nextOffset The next offset to use for pagination.
      * @return total The total number of rails.
@@ -1699,7 +1699,7 @@ contract Payments is ReentrancyGuard {
      * @dev Internal function to get rails for either a payer or payee.
      * @param allRailIds The array of rail IDs to filter rails by.
      * @param offset The offset to start from.
-     * @param limit The limit to apply.
+     * @param limit Maximum number of entries to return
      * @return results Array of RailInfo structs containing rail IDs and termination status.
      * @return nextOffset The next offset to use for pagination.
      * @return total The total number of rails.
