@@ -3,13 +3,9 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {Payments} from "../src/Payments.sol";
-import {IERC3009} from "../src/interfaces/IERC3009.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {console} from "forge-std/console.sol";
-import {Errors} from "../src/Errors.sol";
 
 contract DepositWithAuthorization is Test, BaseTestHelper {
     MockERC20 testToken;
@@ -145,7 +141,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         );
 
         // Corrupt r
-        r = bytes32(uint256(r) ^ 1);
+        r = bytes32(uint256(r) ^ 3);
 
         vm.startPrank(from);
         vm.expectRevert("EIP712: invalid signature"); // invalid signature should revert

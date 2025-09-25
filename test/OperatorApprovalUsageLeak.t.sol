@@ -5,7 +5,6 @@ pragma solidity ^0.8.27;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {Payments} from "../src/Payments.sol";
-import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
 import {console} from "forge-std/console.sol";
@@ -84,8 +83,7 @@ contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
 
         // Settle the rail completely - this will trigger finalizeTerminatedRail
         vm.startPrank(USER2); // Payee can settle
-        (uint256 settledAmount,,, uint256 finalEpoch,) =
-            payments.settleRail{value: payments.NETWORK_FEE()}(railId, endEpoch);
+        (uint256 settledAmount,,,, uint256 finalEpoch,) = payments.settleRail(railId, endEpoch);
         vm.stopPrank();
 
         console.log("\nAfter settlement:");
@@ -141,7 +139,7 @@ contract OperatorApprovalUsageLeakTest is Test, BaseTestHelper {
 
             // Settle to trigger finalization
             vm.startPrank(USER2);
-            payments.settleRail{value: payments.NETWORK_FEE()}(railId, endEpoch);
+            payments.settleRail(railId, endEpoch);
             vm.stopPrank();
 
             // Track leaked usage

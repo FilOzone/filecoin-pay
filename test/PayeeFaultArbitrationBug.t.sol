@@ -32,7 +32,6 @@ contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
     }
 
     function testLockupReturnedWithFaultTermination() public {
-        uint256 networkFee = payments.NETWORK_FEE();
         uint256 paymentRate = 5 ether;
         uint256 lockupPeriod = 12;
         uint256 fixedLockup = 10 ether;
@@ -64,7 +63,7 @@ contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
         helper.advanceBlocks(15);
 
         vm.prank(USER1);
-        payments.settleRail{value: networkFee}(railId, block.number);
+        payments.settleRail(railId, block.number);
 
         Payments.Account memory payerFinal = helper.getAccountData(USER1);
 
@@ -75,7 +74,6 @@ contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
     }
 
     function testLockupReturnedWithFault() public {
-        uint256 networkFee = payments.NETWORK_FEE();
         uint256 paymentRate = 5 ether;
         uint256 lockupPeriod = 12;
         uint256 fixedLockup = 10 ether;
@@ -95,7 +93,7 @@ contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
         helper.advanceBlocks(15);
 
         vm.prank(USER1);
-        payments.settleRail{value: networkFee}(railId, block.number);
+        payments.settleRail(railId, block.number);
 
         Payments.Account memory payerFinal = helper.getAccountData(USER1);
 
@@ -106,7 +104,6 @@ contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
     }
 
     function testLockupReturnedWithFaultReducedDuration() public {
-        uint256 networkFee = payments.NETWORK_FEE();
         uint256 paymentRate = 5 ether;
         uint256 lockupPeriod = 12;
         uint256 fixedLockup = 10 ether;
@@ -131,7 +128,7 @@ contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
         helper.advanceBlocks(15);
 
         vm.prank(USER1);
-        payments.settleRail{value: networkFee}(railId, block.number);
+        payments.settleRail(railId, block.number);
 
         Payments.Account memory payerFinal = helper.getAccountData(USER1);
 

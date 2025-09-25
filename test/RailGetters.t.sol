@@ -10,16 +10,12 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {RailSettlementHelpers} from "./helpers/RailSettlementHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
-import {console} from "forge-std/console.sol";
 
 contract PayeeRailsTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;
     RailSettlementHelpers settlementHelper;
     Payments payments;
     MockERC20 token;
-
-    // Define additional address for testing
-    address public constant USER3 = address(0x7);
 
     // Secondary token for multi-token testing
     MockERC20 token2;
@@ -245,7 +241,6 @@ contract PayeeRailsTest is Test, BaseTestHelper {
     }
 
     function testRailsBeyondEndEpoch() public {
-        uint256 networkFee = payments.NETWORK_FEE();
         // Get the initial rails when Rail 3 is terminated but not beyond its end epoch
         (Payments.RailInfo[] memory initialPayeeRails,,) = payments.getRailsForPayeeAndToken(USER2, token, 0, 3);
         (Payments.RailInfo[] memory initialPayerRails,,) = payments.getRailsForPayerAndToken(USER1, token, 0, 4);
@@ -271,7 +266,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         // IMPORTANT: Settle the rail now that we're beyond its end epoch
         // This will finalize the rail (set rail.from = address(0))
         vm.prank(USER1); // Settle as the client
-        payments.settleRail{value: networkFee}(rail3Id, endEpoch);
+        payments.settleRail(rail3Id, endEpoch);
 
         // Get rails again for both payee and payer
         (Payments.RailInfo[] memory finalPayeeRails,,) = payments.getRailsForPayeeAndToken(USER2, token, 0, 3);

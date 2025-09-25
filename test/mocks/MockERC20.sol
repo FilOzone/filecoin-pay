@@ -21,16 +21,16 @@ contract MockERC20 is ERC20, ERC20Permit, IERC3009 {
         "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
     );
 
-    bytes32 private _HASHED_NAME;
-    bytes32 private _HASHED_VERSION = keccak256("1");
+    bytes32 private immutable _HASHED_NAME;
+    bytes32 private constant _HASHED_VERSION = keccak256("1");
 
     // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     bytes32 private constant _PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
     // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
     bytes32 private constant _TYPE_HASH = 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
 
-    uint256 private _CACHED_CHAIN_ID;
-    bytes32 private _CACHED_DOMAIN_SEPARATOR;
+    uint256 private immutable _CACHED_CHAIN_ID;
+    bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
 
     // --- ERC-3009 Event ---
     event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce);
