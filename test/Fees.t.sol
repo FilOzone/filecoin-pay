@@ -8,8 +8,6 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {RailSettlementHelpers} from "./helpers/RailSettlementHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
-import {console} from "forge-std/console.sol";
-import {Errors} from "../src/Errors.sol";
 
 contract FeesTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;
@@ -45,7 +43,7 @@ contract FeesTest is Test, BaseTestHelper {
         settlementHelper.initialize(payments, helper);
 
         // Set up 3 different tokens
-        token1 = MockERC20(address(helper.testToken())); // Use the default token from the helper
+        token1 = MockERC20(helper.testToken()); // Use the default token from the helper
         token2 = new MockERC20("Token 2", "TK2");
         token3 = new MockERC20("Token 3", "TK3");
 
@@ -74,8 +72,8 @@ contract FeesTest is Test, BaseTestHelper {
 
         // Make deposits with token2 and token3
         vm.startPrank(USER1);
-        payments.deposit(address(token2), USER1, DEPOSIT_AMOUNT);
-        payments.deposit(address(token3), USER1, DEPOSIT_AMOUNT);
+        payments.deposit(token2, USER1, DEPOSIT_AMOUNT);
+        payments.deposit(token3, USER1, DEPOSIT_AMOUNT);
         vm.stopPrank();
     }
 
@@ -92,7 +90,7 @@ contract FeesTest is Test, BaseTestHelper {
         // Operator approvals for token2 and token3
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(token2),
+            token2,
             OPERATOR,
             true, // approved
             RAIL2_RATE, // rate allowance for token2
@@ -101,7 +99,7 @@ contract FeesTest is Test, BaseTestHelper {
         );
 
         payments.setOperatorApproval(
-            address(token3),
+            token3,
             OPERATOR,
             true, // approved
             RAIL3_RATE, // rate allowance for token3
@@ -125,7 +123,7 @@ contract FeesTest is Test, BaseTestHelper {
         // Create a rail with token2
         vm.startPrank(OPERATOR);
         rail2Id = payments.createRail(
-            address(token2),
+            token2,
             USER1, // from
             USER2, // to
             address(0), // no validator
@@ -139,7 +137,7 @@ contract FeesTest is Test, BaseTestHelper {
 
         // Create a rail with token3
         rail3Id = payments.createRail(
-            address(token3),
+            token3,
             USER1, // from
             USER2, // to
             address(0), // no validator
@@ -151,28 +149,5 @@ contract FeesTest is Test, BaseTestHelper {
         payments.modifyRailPayment(rail3Id, RAIL3_RATE, 0);
         payments.modifyRailLockup(rail3Id, 10, 0); // 10 blocks, no fixed lockup
         vm.stopPrank();
-    }
-
-    function testNetworkFee() public {
-        uint256 networkFee = payments.NETWORK_FEE();
-        helper.advanceBlocks(5);
-
-        uint256 startBalance = USER1.balance;
-        vm.prank(USER1);
-        vm.expectRevert(
-            abi.encodeWithSelector(Errors.InsufficientNativeTokenForBurn.selector, networkFee, networkFee - 1)
-        );
-        payments.settleRail{value: networkFee - 1}(rail1Id, block.number);
-        assertEq(startBalance, USER1.balance, "no fee should be taken on revert");
-
-        startBalance = USER1.balance;
-        vm.prank(USER1);
-        payments.settleRail{value: networkFee}(rail2Id, block.number);
-        assertEq(startBalance - networkFee, USER1.balance, "fee should be taken on success");
-
-        startBalance = USER1.balance;
-        vm.prank(USER1);
-        payments.settleRail{value: networkFee + 100}(rail3Id, block.number);
-        assertEq(startBalance - networkFee, USER1.balance, "extra amount is returned");
     }
 }

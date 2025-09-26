@@ -2,12 +2,13 @@
 
 pragma solidity ^0.8.27;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import {Test} from "forge-std/Test.sol";
 import {Payments} from "../src/Payments.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
-import {console} from "forge-std/console.sol";
 import {Errors} from "../src/Errors.sol";
 
 contract OperatorApprovalTest is Test, BaseTestHelper {
@@ -19,6 +20,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
     uint256 constant RATE_ALLOWANCE = 100 ether;
     uint256 constant LOCKUP_ALLOWANCE = 1000 ether;
     uint256 constant MAX_LOCKUP_PERIOD = 100;
+    IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
 
     function setUp() public {
         helper = new PaymentsTestHelpers();
@@ -31,7 +33,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
 
     function testNativeFIL() public {
         vm.startPrank(USER1);
-        payments.setOperatorApproval(address(0), OPERATOR, true, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD);
+        payments.setOperatorApproval(NATIVE_TOKEN, OPERATOR, true, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD);
         vm.stopPrank();
     }
 
@@ -40,7 +42,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         vm.startPrank(USER1);
         vm.expectRevert(abi.encodeWithSelector(Errors.ZeroAddressNotAllowed.selector, "operator"));
         payments.setOperatorApproval(
-            address(0x1), address(0), true, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
+            IERC20(address(0x1)), address(0), true, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
         );
         vm.stopPrank();
     }
@@ -240,7 +242,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
 
         // Try to set fixed lockup that exceeds allowance
         uint256 excessiveLockup = 110 ether;
-        (,,,, uint256 currentLockupUsage,) = payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+        (,,,, uint256 currentLockupUsage,) = payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         uint256 attemptedUsage = currentLockupUsage + excessiveLockup;
         vm.startPrank(OPERATOR);
         vm.expectRevert(
@@ -325,7 +327,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // 4. Revoke approval and verify operator can't create new rails
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(helper.testToken()), OPERATOR, false, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
+            helper.testToken(), OPERATOR, false, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
         );
         vm.stopPrank();
 
@@ -341,12 +343,12 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // 6. Test client authorization (operator can't set approvals for client)
         vm.startPrank(OPERATOR);
         payments.setOperatorApproval(
-            address(helper.testToken()), USER2, true, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
+            helper.testToken(), USER2, true, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
         );
         vm.stopPrank();
 
         // Verify operator approval was not set for client
-        (bool isApproved,,,,,) = payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+        (bool isApproved,,,,,) = payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         assertFalse(isApproved, "Second operator should not be approved for client");
     }
 
@@ -405,7 +407,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // 1. Test allowance reduction after fixed lockup set
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(helper.testToken()),
+            helper.testToken(),
             OPERATOR,
             true,
             RATE_ALLOWANCE,
@@ -426,7 +428,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // 2. Test zero allowance after fixed lockup set
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(helper.testToken()),
+            helper.testToken(),
             OPERATOR,
             true,
             RATE_ALLOWANCE,
@@ -460,7 +462,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // Client reduces allowance to below what's already being used
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(helper.testToken()),
+            helper.testToken(),
             OPERATOR,
             true,
             40 ether, // below current usage of 50 ether
@@ -483,7 +485,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
             uint256 lockupAllowance,
             uint256 rateUsage,
             uint256 lockupUsage,
-        ) = helper.payments().operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+        ) = helper.payments().operatorApprovals(helper.testToken(), USER1, OPERATOR);
         assertEq(rateAllowance - rateUsage, 10 ether);
         assertEq(lockupAllowance - lockupUsage, 5 ether);
 
@@ -503,7 +505,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         payments.modifyRailPayment(railId2, 11 ether, 0);
         vm.stopPrank();
 
-        (,,,, lockupUsage,) = payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+        (,,,, lockupUsage,) = payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         uint256 oldLockupFixed = payments.getRail(railId2).lockupFixed;
         uint256 newLockupFixed = 6 ether;
         uint256 lockupIncrease = 0;
@@ -542,7 +544,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // Client reduces rate allowance below current usage
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(helper.testToken()),
+            helper.testToken(),
             OPERATOR,
             true,
             30 ether, // below current usage of 50 ether
@@ -562,7 +564,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
             ,
             ,
             ,
-        ) = payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+        ) = payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         uint256 attemptedRateUsage = 40 ether;
         // Operator should not be able to increase rate above current allowance
         vm.startPrank(OPERATOR);
@@ -575,7 +577,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // 2. Test zeroing rate allowance after usage
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(helper.testToken()),
+            helper.testToken(),
             OPERATOR,
             true,
             0, // zero allowance
@@ -591,7 +593,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
 
         // Operator should not be able to increase rate at all
         vm.startPrank(OPERATOR);
-        // Payments.OperatorApproval approval = payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+        // Payments.OperatorApproval approval = payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         vm.expectRevert(abi.encodeWithSelector(Errors.OperatorRateAllowanceExceeded.selector, 0, 21 ether));
         payments.modifyRailPayment(railId, 21 ether, 0);
         vm.stopPrank();
@@ -612,7 +614,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // Client reduces lockup allowance below current usage
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(helper.testToken()),
+            helper.testToken(),
             OPERATOR,
             true,
             50 ether,
@@ -689,7 +691,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // Revoke approval
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(helper.testToken()), OPERATOR, false, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
+            helper.testToken(), OPERATOR, false, RATE_ALLOWANCE, LOCKUP_ALLOWANCE, MAX_LOCKUP_PERIOD
         );
         vm.stopPrank();
 
@@ -705,7 +707,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // Reapprove with reduced allowances
         vm.startPrank(USER1);
         payments.setOperatorApproval(
-            address(helper.testToken()),
+            helper.testToken(),
             OPERATOR,
             true,
             20 ether, // Only enough for current rails
@@ -720,7 +722,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         // But should not be able to exceed the new allowance
         vm.startPrank(OPERATOR);
         (, uint256 rateAllowance,, uint256 rateUsage,,) =
-            payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+            payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         uint256 attempted = rateUsage + 10 ether; // Attempt to set rate above allowance
         vm.expectRevert(abi.encodeWithSelector(Errors.OperatorRateAllowanceExceeded.selector, rateAllowance, attempted));
         payments.modifyRailPayment(railId3, 10 ether, 0); // Would exceed new rate allowance
@@ -751,7 +753,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         vm.expectRevert(
             abi.encodeWithSelector(
                 Errors.LockupPeriodExceedsOperatorMaximum.selector,
-                address(helper.testToken()),
+                helper.testToken(),
                 OPERATOR,
                 limitedMaxLockupPeriod,
                 limitedMaxLockupPeriod + 1
@@ -791,7 +793,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         vm.expectRevert(
             abi.encodeWithSelector(
                 Errors.LockupPeriodExceedsOperatorMaximum.selector,
-                address(helper.testToken()),
+                helper.testToken(),
                 OPERATOR,
                 finalMaxLockupPeriod,
                 6
@@ -809,7 +811,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
 
         // Verify initial state
         (bool isApproved, uint256 rateAllowance, uint256 lockupAllowance,,, uint256 maxLockupPeriod) =
-            payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+            payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         assertEq(isApproved, true);
         assertEq(rateAllowance, RATE_ALLOWANCE);
         assertEq(lockupAllowance, LOCKUP_ALLOWANCE);
@@ -820,12 +822,12 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         uint256 lockupIncrease = 500 ether;
 
         vm.startPrank(USER1);
-        payments.increaseOperatorApproval(address(helper.testToken()), OPERATOR, rateIncrease, lockupIncrease);
+        payments.increaseOperatorApproval(helper.testToken(), OPERATOR, rateIncrease, lockupIncrease);
         vm.stopPrank();
 
         // Verify increased allowances
         (isApproved, rateAllowance, lockupAllowance,,, maxLockupPeriod) =
-            payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+            payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         assertEq(isApproved, true);
         assertEq(rateAllowance, RATE_ALLOWANCE + rateIncrease);
         assertEq(lockupAllowance, LOCKUP_ALLOWANCE + lockupIncrease);
@@ -838,12 +840,12 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
 
         // Increase by zero (should work but not change anything)
         vm.startPrank(USER1);
-        payments.increaseOperatorApproval(address(helper.testToken()), OPERATOR, 0, 0);
+        payments.increaseOperatorApproval(helper.testToken(), OPERATOR, 0, 0);
         vm.stopPrank();
 
         // Verify allowances remain the same
         (bool isApproved, uint256 rateAllowance, uint256 lockupAllowance,,, uint256 maxLockupPeriod) =
-            payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+            payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         assertEq(isApproved, true);
         assertEq(rateAllowance, RATE_ALLOWANCE);
         assertEq(lockupAllowance, LOCKUP_ALLOWANCE);
@@ -852,7 +854,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
 
     function testIncreaseOperatorApproval_OperatorNotApproved() public {
         // Get token address before setting up expectRevert
-        address tokenAddress = address(helper.testToken());
+        IERC20 tokenAddress = helper.testToken();
 
         // Try to increase approval for non-approved operator
         vm.startPrank(USER1);
@@ -863,7 +865,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
 
     function testIncreaseOperatorApproval_ZeroOperatorAddress() public {
         // Get token address before setting up expectRevert
-        address tokenAddress = address(helper.testToken());
+        IERC20 tokenAddress = helper.testToken();
 
         // Try to increase approval for zero address operator
         vm.startPrank(USER1);
@@ -880,7 +882,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         helper.revokeOperatorApprovalAndVerify(USER1, OPERATOR);
 
         // Get token address before setting up expectRevert
-        address tokenAddress = address(helper.testToken());
+        IERC20 tokenAddress = helper.testToken();
 
         // Try to increase revoked approval
         vm.startPrank(USER1);
@@ -905,7 +907,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
 
         // Verify usage before increase
         (, uint256 rateAllowanceBefore, uint256 lockupAllowanceBefore, uint256 rateUsage, uint256 lockupUsage,) =
-            payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+            payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         assertEq(rateUsage, paymentRate);
         assertEq(lockupUsage, lockupFixed);
 
@@ -914,12 +916,12 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         uint256 lockupIncrease = 800 ether;
 
         vm.startPrank(USER1);
-        payments.increaseOperatorApproval(address(helper.testToken()), OPERATOR, rateIncrease, lockupIncrease);
+        payments.increaseOperatorApproval(helper.testToken(), OPERATOR, rateIncrease, lockupIncrease);
         vm.stopPrank();
 
         // Verify allowances increased but usage remains the same
         (, uint256 rateAllowanceAfter, uint256 lockupAllowanceAfter, uint256 rateUsageAfter, uint256 lockupUsageAfter,)
-        = payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+        = payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         assertEq(rateAllowanceAfter, rateAllowanceBefore + rateIncrease);
         assertEq(lockupAllowanceAfter, lockupAllowanceBefore + lockupIncrease);
         assertEq(rateUsageAfter, rateUsage); // Usage should remain unchanged
@@ -935,7 +937,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         uint256 firstLockupIncrease = 250 ether;
 
         vm.startPrank(USER1);
-        payments.increaseOperatorApproval(address(helper.testToken()), OPERATOR, firstRateIncrease, firstLockupIncrease);
+        payments.increaseOperatorApproval(helper.testToken(), OPERATOR, firstRateIncrease, firstLockupIncrease);
         vm.stopPrank();
 
         // Second increase
@@ -943,14 +945,12 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         uint256 secondLockupIncrease = 350 ether;
 
         vm.startPrank(USER1);
-        payments.increaseOperatorApproval(
-            address(helper.testToken()), OPERATOR, secondRateIncrease, secondLockupIncrease
-        );
+        payments.increaseOperatorApproval(helper.testToken(), OPERATOR, secondRateIncrease, secondLockupIncrease);
         vm.stopPrank();
 
         // Verify cumulative increases
         (, uint256 rateAllowance, uint256 lockupAllowance,,,) =
-            payments.operatorApprovals(address(helper.testToken()), USER1, OPERATOR);
+            payments.operatorApprovals(helper.testToken(), USER1, OPERATOR);
         assertEq(rateAllowance, RATE_ALLOWANCE + firstRateIncrease + secondRateIncrease);
         assertEq(lockupAllowance, LOCKUP_ALLOWANCE + firstLockupIncrease + secondLockupIncrease);
     }

@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
-import {Test, Vm} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {Payments} from "../src/Payments.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @title PaymentsEventsTest
@@ -16,7 +14,7 @@ import {console} from "forge-std/console.sol";
 contract PaymentsEventsTest is Test, BaseTestHelper {
     Payments public payments;
     PaymentsTestHelpers public helper;
-    IERC20 public testToken;
+    MockERC20 public testToken;
 
     uint256 constant DEPOSIT_AMOUNT = 100 ether;
     uint256 constant MAX_LOCKUP_PERIOD = 100;
@@ -66,7 +64,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // Expect the event to be emitted
         // lockupCurrent = 25 ether ( from modifyRailPayment ) + 5 * 5 ether ( elapsedTime * lockupRate)
         vm.expectEmit(true, true, true, true);
-        emit Payments.AccountLockupSettled(address(testToken), USER1, 50 ether, 5 ether, block.number);
+        emit Payments.AccountLockupSettled(testToken, USER1, 50 ether, 5 ether, block.number);
         emit Payments.RailLockupModified(railId, 5, 10, 0, 0);
 
         payments.modifyRailLockup(railId, 10, 0 ether);
@@ -82,13 +80,11 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, true, true);
-        emit Payments.OperatorApprovalUpdated(
-            address(testToken), USER1, OPERATOR2, true, 5 ether, 50 ether, MAX_LOCKUP_PERIOD
-        );
+        emit Payments.OperatorApprovalUpdated(testToken, USER1, OPERATOR2, true, 5 ether, 50 ether, MAX_LOCKUP_PERIOD);
 
         // Set operator approval
         payments.setOperatorApproval(
-            address(testToken),
+            testToken,
             OPERATOR2,
             true,
             5 ether, // rateAllowance
@@ -111,7 +107,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
             1, // railId (assuming this is the first rail)
             USER1, // payer
             USER2, // payee
-            address(testToken), // token
+            testToken, // token
             OPERATOR, // operator
             address(0), // validator
             SERVICE_FEE_RECIPIENT, // serviceFeeRecipient
@@ -120,7 +116,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Create rail
         payments.createRail(
-            address(testToken),
+            testToken,
             USER1,
             USER2,
             address(0), // validator
@@ -165,12 +161,17 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // calcualate expected values
         Payments.RailView memory rail = payments.getRail(railId);
         uint256 oneTimeAmount = 5 ether;
-        uint256 expectedOperatorCommission = (oneTimeAmount * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
-        uint256 expectedNetPayeeAmount = oneTimeAmount - expectedOperatorCommission;
+        uint256 expectedNetworkFee =
+            oneTimeAmount * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
+        uint256 expectedOperatorCommission =
+            ((oneTimeAmount - expectedNetworkFee) * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
+        uint256 expectedNetPayeeAmount = oneTimeAmount - expectedOperatorCommission - expectedNetworkFee;
 
         // expect the event to be emitted
         vm.expectEmit(true, false, false, true);
-        emit Payments.RailOneTimePaymentProcessed(railId, expectedNetPayeeAmount, expectedOperatorCommission);
+        emit Payments.RailOneTimePaymentProcessed(
+            railId, expectedNetPayeeAmount, expectedOperatorCommission, expectedNetworkFee
+        );
 
         // Execute one-time payment by calling modifyRailPayment with the current rate and a one-time payment amount
 
@@ -202,7 +203,6 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
      * @dev Test for RailSettled event
      */
     function testRailSettledEvent() public {
-        uint256 networkFee = payments.NETWORK_FEE();
         // Create and set up a rail
         railId = helper.createRail(USER1, USER2, OPERATOR, address(0), SERVICE_FEE_RECIPIENT);
 
@@ -219,17 +219,20 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // expected values
         Payments.RailView memory rail = payments.getRail(railId);
         uint256 totalSettledAmount = 5 * rail.paymentRate;
-        uint256 totalOperatorCommission = (totalSettledAmount * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
-        uint256 totalNetPayeeAmount = totalSettledAmount - totalOperatorCommission;
+        uint256 totalNetworkFee =
+            5 * rail.paymentRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
+        uint256 totalOperatorCommission =
+            ((totalSettledAmount - totalNetworkFee) * rail.commissionRateBps) / payments.COMMISSION_MAX_BPS();
+        uint256 totalNetPayeeAmount = totalSettledAmount - totalNetworkFee - totalOperatorCommission;
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, false, true);
         emit Payments.RailSettled(
-            railId, totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, block.number
+            railId, totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, block.number
         );
 
         // Settle rail
-        payments.settleRail{value: networkFee}(railId, block.number);
+        payments.settleRail(railId, block.number);
 
         vm.stopPrank();
     }
@@ -308,11 +311,11 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // Expect the event to be emitted
         // Only check the first three indexed parameters
         vm.expectEmit(true, true, true, true);
-        emit Payments.AccountLockupSettled(address(testToken), USER2, 0, 0, block.number);
-        emit Payments.DepositRecorded(address(testToken), USER1, USER2, 10 ether, false); // Amount not checked
+        emit Payments.AccountLockupSettled(testToken, USER2, 0, 0, block.number);
+        emit Payments.DepositRecorded(testToken, USER1, USER2, 10 ether); // Amount not checked
 
         // Deposit tokens
-        payments.deposit(address(testToken), USER2, 10 ether);
+        payments.deposit(testToken, USER2, 10 ether);
 
         vm.stopPrank();
 
@@ -322,7 +325,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         address signer = vm.addr(privateKey);
 
         // Mint tokens to the signer
-        MockERC20(address(testToken)).mint(signer, 50 ether);
+        MockERC20(testToken).mint(signer, 50 ether);
 
         uint256 depositAmount = 10 ether;
         uint256 deadline = block.timestamp + 1 hours;
@@ -335,11 +338,11 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, false, true);
-        emit Payments.AccountLockupSettled(address(testToken), signer, 0, 0, block.number);
-        emit Payments.DepositRecorded(address(testToken), signer, signer, depositAmount, true);
+        emit Payments.AccountLockupSettled(testToken, signer, 0, 0, block.number);
+        emit Payments.DepositRecorded(testToken, signer, signer, depositAmount);
 
         // Deposit with permit
-        payments.depositWithPermit(address(testToken), signer, depositAmount, deadline, v, r, s);
+        payments.depositWithPermit(testToken, signer, depositAmount, deadline, v, r, s);
 
         vm.stopPrank();
     }
@@ -355,10 +358,10 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, true, true);
-        emit Payments.WithdrawRecorded(address(testToken), USER2, USER2, 5 ether);
+        emit Payments.WithdrawRecorded(testToken, USER2, USER2, 5 ether);
 
         // Withdraw tokens
-        payments.withdraw(address(testToken), 5 ether);
+        payments.withdraw(testToken, 5 ether);
 
         vm.stopPrank();
     }

@@ -3,10 +3,8 @@ pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
 import {Payments} from "../src/Payments.sol";
-import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
-import {console} from "forge-std/console.sol";
 
 contract AccountLockupSettlementTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;
@@ -219,7 +217,7 @@ contract AccountLockupSettlementTest is Test, BaseTestHelper {
         // Try to set up a rail with lockup > funds which should fail
         vm.startPrank(OPERATOR);
         uint256 railId = payments.createRail(
-            address(helper.testToken()),
+            helper.testToken(),
             USER1,
             USER2,
             address(0),
