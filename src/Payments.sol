@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
+import {FVMPay} from "fvm-solidity/FVMPay.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -43,6 +44,7 @@ interface IValidator {
 // @title Payments contract.
 contract Payments is ReentrancyGuard {
     using Dutch for uint256;
+    using FVMPay for uint256;
     using SafeERC20 for IERC20;
     using RateChangeQueue for RateChangeQueue.Queue;
 
@@ -1088,7 +1090,7 @@ contract Payments is ReentrancyGuard {
         // ceil()
         fee = (amount * NETWORK_FEE_NUMERATOR + (NETWORK_FEE_DENOMINATOR - 1)) / NETWORK_FEE_DENOMINATOR;
         if (token == NATIVE_TOKEN) {
-            burnViaPrecompile(fee);
+            fee.burn();
         } else {
             accounts[token][address(this)].funds += fee;
             // start fee auction if necessary
@@ -1822,35 +1824,10 @@ contract Payments is ReentrancyGuard {
         auction.startPrice = uint88(auctionPrice);
         auction.startTime = uint168(block.timestamp);
 
-        burnViaPrecompile(msg.value);
+        msg.value.burn();
 
         uint256 actual = transferOut(token, recipient, requested);
         fees.funds = available - actual;
-    }
-
-    /**
-     * @dev Burns FIL using the FVM precompile to call the burn actor (ID 99)
-     * @param amount The amount of FIL to burn
-     */
-    function burnViaPrecompile(uint256 amount) private {
-        // Using simpler encoding to reduce stack usage
-        bool ok;
-        assembly ("memory-safe") {
-            let fmp := mload(0x40)
-            mstore(fmp, 0) // method 0
-            mstore(add(32, fmp), amount) // value
-            mstore(add(64, fmp), 0) // flags
-            mstore(add(96, fmp), 0) // codec
-            mstore(add(128, fmp), 0) // params
-            mstore(add(160, fmp), BURN_ACTOR_ID) // actor ID
-            ok :=
-                and(
-                    and(gt(returndatasize(), 31), eq(mload(fmp), 0)),
-                    delegatecall(gas(), CALL_ACTOR_ID_PRECOMPILE, fmp, 192, fmp, 192)
-                )
-        }
-
-        require(ok, Errors.NativeTransferFailed(BURN_ADDRESS, amount));
     }
 }
 
