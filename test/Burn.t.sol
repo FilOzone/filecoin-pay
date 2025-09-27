@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
+import {FVMCallActorById} from "fvm-solidity/mocks/FVMCallActorById.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
 
@@ -8,7 +9,6 @@ import {Dutch} from "../src/Dutch.sol";
 import {Errors} from "../src/Errors.sol";
 import {FIRST_AUCTION_START_PRICE, MAX_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
-import {FVMPrecompileMock} from "./helpers/FVMPrecompileMock.sol";
 
 contract BurnTest is Test {
     using Dutch for uint256;
@@ -29,7 +29,7 @@ contract BurnTest is Test {
 
     function setUp() public {
         // Deploy and install the FVM precompile mock
-        FVMPrecompileMock precompileMock = new FVMPrecompileMock();
+        FVMCallActorById precompileMock = new FVMCallActorById();
         vm.etch(0xfe00000000000000000000000000000000000005, address(precompileMock).code);
 
         helper.setupStandardTestEnvironment();
