@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
+import {BURN_ADDRESS} from "fvm-solidity/FVMActors.sol";
 import {FVMPay} from "fvm-solidity/FVMPay.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
@@ -44,6 +45,7 @@ interface IValidator {
 // @title Payments contract.
 contract Payments is ReentrancyGuard {
     using Dutch for uint256;
+    using FVMPay for address;
     using FVMPay for uint256;
     using SafeERC20 for IERC20;
     using RateChangeQueue for RateChangeQueue.Queue;
@@ -775,8 +777,7 @@ contract Payments is ReentrancyGuard {
         uint256 available = account.funds - account.lockupCurrent;
         require(amount <= available, Errors.InsufficientUnlockedFunds(available, amount));
         if (token == NATIVE_TOKEN) {
-            (bool success,) = payable(to).call{value: amount}("");
-            require(success, Errors.NativeTransferFailed(to, amount));
+            require(to.pay(amount), Errors.NativeTransferFailed(to, amount));
         } else {
             uint256 actual = transferOut(token, to, amount);
             if (amount != actual) {
@@ -1087,7 +1088,7 @@ contract Payments is ReentrancyGuard {
         // ceil()
         fee = (amount * NETWORK_FEE_NUMERATOR + (NETWORK_FEE_DENOMINATOR - 1)) / NETWORK_FEE_DENOMINATOR;
         if (token == NATIVE_TOKEN) {
-            fee.burn();
+            require(fee.burn(), Errors.NativeTransferFailed(BURN_ADDRESS, fee));
         } else {
             accounts[token][address(this)].funds += fee;
             // start fee auction if necessary
@@ -1821,7 +1822,7 @@ contract Payments is ReentrancyGuard {
         auction.startPrice = uint88(auctionPrice);
         auction.startTime = uint168(block.timestamp);
 
-        msg.value.burn();
+        require(msg.value.burn(), Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
 
         uint256 actual = transferOut(token, recipient, requested);
         fees.funds = available - actual;
