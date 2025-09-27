@@ -1,25 +1,29 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
+import {MockFVMTest} from "fvm-solidity/mocks/MockFVMTest.sol";
+import {BURN_ADDRESS} from "fvm-solidity/FVMActors.sol";
+
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {MockFeeOnTransferTokenWithPermit} from "./mocks/MockFeeOnTransferTokenWithPermit.sol";
 import {FIRST_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
-import {Test} from "forge-std/Test.sol";
 
-contract BurnFeeOnTransferTokenTest is Test {
+contract BurnFeeOnTransferTokenTest is MockFVMTest {
     PaymentsTestHelpers helper = new PaymentsTestHelpers();
     Payments payments;
     MockFeeOnTransferTokenWithPermit feeToken;
 
     uint256 railId;
-    address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
 
     address operator;
     address payer;
     address payee;
     address recipient;
 
-    function setUp() public {
+    function setUp() public override {
+        // Mock the FVM precompiles
+        super.setUp();
+
         helper.setupStandardTestEnvironment();
         payments = helper.payments();
         operator = helper.OPERATOR();
