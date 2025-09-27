@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
-import {FVMCallActorById} from "fvm-solidity/mocks/FVMCallActorById.sol";
-import {Test} from "forge-std/Test.sol";
+import {MockFVMTest} from "fvm-solidity/mocks/MockFVMTest.sol";
 
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {MockFeeOnTransferTokenWithPermit} from "./mocks/MockFeeOnTransferTokenWithPermit.sol";
 import {FIRST_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
 
-contract BurnFeeOnTransferTokenTest is Test {
+contract BurnFeeOnTransferTokenTest is MockFVMTest {
     PaymentsTestHelpers helper = new PaymentsTestHelpers();
     Payments payments;
     MockFeeOnTransferTokenWithPermit feeToken;
@@ -21,10 +20,9 @@ contract BurnFeeOnTransferTokenTest is Test {
     address payee;
     address recipient;
 
-    function setUp() public {
-        // Deploy and install the FVM precompile mock
-        FVMCallActorById precompileMock = new FVMCallActorById();
-        vm.etch(0xfe00000000000000000000000000000000000005, address(precompileMock).code);
+    function setUp() public override {
+        // Mock the FVM precompiles
+        super.setUp();
 
         helper.setupStandardTestEnvironment();
         payments = helper.payments();
