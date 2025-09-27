@@ -54,7 +54,6 @@ contract Payments is ReentrancyGuard {
     uint256 public constant NETWORK_FEE_NUMERATOR = 1; // 0.5%
     uint256 public constant NETWORK_FEE_DENOMINATOR = 200;
 
-    address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
     IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
 
     // Events

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {MockFVMTest} from "fvm-solidity/mocks/MockFVMTest.sol";
+import {BURN_ADDRESS} from "fvm-solidity/FVMActors.sol";
 
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {ExtraFeeToken} from "./mocks/ExtraFeeToken.sol";
@@ -13,7 +14,6 @@ contract BurnFeeOnTransferTokenTest is MockFVMTest {
     ExtraFeeToken feeToken;
 
     uint256 railId;
-    address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
 
     address operator;
     address payer;
