@@ -45,6 +45,15 @@ contract Profile is Script {
         payments.deposit(token, from, amount);
 
         payments.deposit{value: amount}(NATIVE_TOKEN, sender, amount);
+
+        for (int i = 0; i < 5; i++) {
+            Payments payments1 = new Payments();
+            uint256 amount1 = 10**15;
+            for (uint160 j = 0; j < 120; j++) {
+                payments1.deposit{value: amount1}(NATIVE_TOKEN, address(uint160(address(payments)) + j), amount1);
+            }
+        }
+
         payments.withdraw(NATIVE_TOKEN, amount / 3);
         payments.withdrawTo(NATIVE_TOKEN, sender, amount / 3);
 

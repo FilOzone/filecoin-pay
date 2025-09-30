@@ -21,7 +21,7 @@ report() {
 rm -f .gas-profile
 
 run "createRail(address)" $SENDER_ADDRESS
-report 16 createRail
+report 621 createRail
 
 run "settleRail(address,address,uint256)" $SENDER_ADDRESS $RAIL_ADDRESS 1
 report 1 settleRail
