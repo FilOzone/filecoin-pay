@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
-import {MockFVMTest} from "fvm-solidity/mocks/MockFVMTest.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import {Test} from "forge-std/Test.sol";
 import {Payments} from "../src/Payments.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Errors} from "../src/Errors.sol";
 
-contract AccountManagementTest is MockFVMTest, BaseTestHelper {
+contract AccountManagementTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;
     Payments payments;
 
@@ -19,8 +18,7 @@ contract AccountManagementTest is MockFVMTest, BaseTestHelper {
 
     IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
 
-    function setUp() public override {
-        super.setUp();
+    function setUp() public {
         // Create test helpers and setup environment
         helper = new PaymentsTestHelpers();
         helper.setupStandardTestEnvironment();

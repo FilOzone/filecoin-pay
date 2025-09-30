@@ -2,21 +2,22 @@
 pragma solidity ^0.8.27;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockFVMTest} from "fvm-solidity/mocks/MockFVMTest.sol";
-import {BURN_ADDRESS} from "fvm-solidity/FVMActors.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {Dutch} from "../src/Dutch.sol";
 import {Errors} from "../src/Errors.sol";
 import {FIRST_AUCTION_START_PRICE, MAX_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 
-contract BurnTest is MockFVMTest {
+contract BurnTest is Test {
     using Dutch for uint256;
 
     PaymentsTestHelpers helper = new PaymentsTestHelpers();
     Payments payments;
     uint256 testTokenRailId;
     uint256 nativeTokenRailId;
+
+    address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
 
     IERC20 private testToken;
     IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
@@ -25,10 +26,7 @@ contract BurnTest is MockFVMTest {
     address private operator;
     address private recipient;
 
-    function setUp() public override {
-        // Mock the FVM precompiles
-        super.setUp();
-
+    function setUp() public {
         helper.setupStandardTestEnvironment();
         payments = helper.payments();
 
