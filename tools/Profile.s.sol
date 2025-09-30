@@ -1,8 +1,9 @@
 pragma solidity ^0.8.30;
 
 import {Script} from "forge-std/Script.sol";
+import {FVMCallActorByAddress} from "fvm-solidity/mocks/FVMCallActorByAddress.sol";
 import {FVMCallActorById} from "fvm-solidity/mocks/FVMCallActorById.sol";
-import {CALL_ACTOR_BY_ID} from "fvm-solidity/FVMPrecompiles.sol";
+import {CALL_ACTOR_BY_ADDRESS, CALL_ACTOR_BY_ID} from "fvm-solidity/FVMPrecompiles.sol";
 
 import "../src/Payments.sol";
 import "../test/mocks/MockERC20.sol";
@@ -12,6 +13,9 @@ IERC20 constant NATIVE_TOKEN = IERC20(address(0));
 contract Profile is Script {
     function createRail(address sender) public {
         vm.deal(sender, 2000 * 10 ** 18);
+
+        FVMCallActorByAddress precompileMock = new FVMCallActorByAddress();
+        vm.etch(CALL_ACTOR_BY_ADDRESS, address(precompileMock).code);
 
         vm.startBroadcast();
 
