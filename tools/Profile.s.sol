@@ -7,6 +7,8 @@ import {CALL_ACTOR_BY_ID} from "fvm-solidity/FVMPrecompiles.sol";
 import "../src/Payments.sol";
 import "../test/mocks/MockERC20.sol";
 
+IERC20 constant NATIVE_TOKEN = IERC20(address(0));
+
 contract Profile is Script {
     function createRail(address sender) public {
         vm.deal(sender, 2000 * 10 ** 18);
@@ -37,6 +39,10 @@ contract Profile is Script {
         token.mint(from, amount);
         token.approve(address(payments), amount);
         payments.deposit(token, from, amount);
+
+        payments.deposit{value: amount}(NATIVE_TOKEN, sender, amount);
+        payments.withdraw(NATIVE_TOKEN, amount / 3);
+        payments.withdrawTo(NATIVE_TOKEN, sender, amount / 3);
 
         // TODO depositWithPermit
         // TODO depositWithPermitAndApproveOperator
