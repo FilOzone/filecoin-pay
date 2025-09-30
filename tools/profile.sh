@@ -18,10 +18,10 @@ report() {
     [[ "$(../forge-script-gas-report/forge_script_block_numbers ./broadcast/Profile.s.sol/$CHAIN_ID/$2-latest.json | wc -l)" -eq $1 ]] || (echo possible nondeterminism detected && exit 1)
     ../forge-script-gas-report/forge_script_gas_report ./broadcast/Profile.s.sol/$CHAIN_ID/$2-latest.json | tee -a .gas-profile
 }
-rm .gas-profile
+rm -f .gas-profile
 
 run "createRail(address)" $SENDER_ADDRESS
-report 13 createRail
+report 16 createRail
 
 run "settleRail(address,address,uint256)" $SENDER_ADDRESS $RAIL_ADDRESS 1
 report 1 settleRail
