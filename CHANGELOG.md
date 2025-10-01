@@ -5,14 +5,32 @@ All notable changes to this project will be documented in this file. The format 
 ## [Unreleased]
 
 ### Added
-- Support for ERC-3009 (Transfer with authorization) ([#214](https://github.com/FilOzone/filecoin-pay/pull/214))
-- Support for relayers to submit deposit transactions ([#217](https://github.com/FilOzone/filecoin-pay/pull/217))
-- Network fee charging in settlement operations ([#224](https://github.com/FilOzone/filecoin-pay/pull/224))
-- IERC20 type improvements and label mapping keys ([#225](https://github.com/FilOzone/filecoin-pay/pull/225))
 
 ### Changed
 
 ### Fixed
+
+## [0.6.0-rc1] - Filecoin-Pay M3 rc1
+
+### Deployed
+- **Calibration**: `[ADDRESS_TO_BE_UPDATED]`
+- **Mainnet**: `[ADDRESS_TO_BE_UPDATED]`
+
+### Added
+- Support for ERC-3009 (Transfer with authorization) ([#214](https://github.com/FilOzone/filecoin-pay/pull/214))
+- Support for relayers to submit deposit transactions ([#217](https://github.com/FilOzone/filecoin-pay/pull/217))
+- Network fee charging in settlement operations ([#224](https://github.com/FilOzone/filecoin-pay/pull/224))
+- IERC20 type improvements and label mapping keys ([#225](https://github.com/FilOzone/filecoin-pay/pull/225))
+- Fee auction functionality ([#229](https://github.com/FilOzone/filecoin-pay/pull/229))
+- Pagination support for `_getRailsForAddressAndToken` ([#237](https://github.com/FilOzone/filecoin-pay/pull/237))
+
+### Changed
+- Restored settlement permissions allowing any participant to settle rails ([#221](https://github.com/FilOzone/filecoin-pay/pull/221))
+
+### Fixed
+- Network fee handling in `settleTerminatedRailWithoutValidation` ([#223](https://github.com/FilOzone/filecoin-pay/pull/223))
+- CI workflow issue with npm dependencies in publish-abis workflow ([#236](https://github.com/FilOzone/filecoin-pay/pull/236))
+- Add completed security audit report to readme ([#231](https://github.com/FilOzone/filecoin-pay/pull/231))
 
 ## [0.5.0] - Filecoin-Pay Developer Preview
 
@@ -34,7 +52,6 @@ upcoming breaking changes.
 - Settlement operations now accessible by any participant (payer, payee, or operator) ([#219](https://github.com/FilOzone/filecoin-pay/pull/219), [#220](https://github.com/FilOzone/filecoin-pay/pull/220))
 
 ### Fixed
-- Network fee handling in `settleTerminatedRailWithoutValidation` ([#223](https://github.com/FilOzone/filecoin-pay/pull/223))
 - Settlement permission logic corrections ([#220](https://github.com/FilOzone/filecoin-pay/pull/220))
 
 ## [0.2.0] - Mainnet Alpha
