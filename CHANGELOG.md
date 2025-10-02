@@ -13,8 +13,8 @@ All notable changes to this project will be documented in this file. The format 
 ## [0.6.0-rc1] - Filecoin-Pay M3 rc1
 
 ### Deployed
-- **Calibration**: `[ADDRESS_TO_BE_UPDATED]`
-- **Mainnet**: `[ADDRESS_TO_BE_UPDATED]`
+- **Calibration**: [0xc77336Af9853817729F52fE5C3d465C18e87b9E0](https://calibration.filfox.info/en/address/0xc77336Af9853817729F52fE5C3d465C18e87b9E0)
+- **Mainnet**: [0xCe03746C078d99C38C4993f6d7322f6fcd3F5C45](https://filfox.info/en/address/0xCe03746C078d99C38C4993f6d7322f6fcd3F5C45)
 
 ### Added
 - Support for ERC-3009 (Transfer with authorization) ([#214](https://github.com/FilOzone/filecoin-pay/pull/214))
