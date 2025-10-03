@@ -45,8 +45,6 @@ interface IValidator {
 // @title Payments contract.
 contract Payments is ReentrancyGuard {
     using Dutch for uint256;
-    using FVMPay for address;
-    using FVMPay for uint256;
     using SafeERC20 for IERC20;
     using RateChangeQueue for RateChangeQueue.Queue;
 
@@ -777,7 +775,7 @@ contract Payments is ReentrancyGuard {
         uint256 available = account.funds - account.lockupCurrent;
         require(amount <= available, Errors.InsufficientUnlockedFunds(available, amount));
         if (token == NATIVE_TOKEN) {
-            require(to.pay(amount), Errors.NativeTransferFailed(to, amount));
+            require(FVMPay.pay(to, amount), Errors.NativeTransferFailed(to, amount));
         } else {
             uint256 actual = transferOut(token, to, amount);
             if (amount != actual) {
@@ -1088,7 +1086,7 @@ contract Payments is ReentrancyGuard {
         // ceil()
         fee = (amount * NETWORK_FEE_NUMERATOR + (NETWORK_FEE_DENOMINATOR - 1)) / NETWORK_FEE_DENOMINATOR;
         if (token == NATIVE_TOKEN) {
-            require(fee.burn(), Errors.NativeTransferFailed(BURN_ADDRESS, fee));
+            require(FVMPay.burn(fee), Errors.NativeTransferFailed(BURN_ADDRESS, fee));
         } else {
             accounts[token][address(this)].funds += fee;
             // start fee auction if necessary
@@ -1822,7 +1820,7 @@ contract Payments is ReentrancyGuard {
         auction.startPrice = uint88(auctionPrice);
         auction.startTime = uint168(block.timestamp);
 
-        require(msg.value.burn(), Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
+        require(FVMPay.burn(msg.value), Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
 
         uint256 actual = transferOut(token, recipient, requested);
         fees.funds = available - actual;
