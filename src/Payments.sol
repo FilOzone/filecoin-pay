@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 pragma solidity ^0.8.27;
 
+import {BURN_ADDRESS} from "fvm-solidity/FVMActors.sol";
+import {FVMPay} from "fvm-solidity/FVMPay.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -52,7 +54,6 @@ contract Payments is ReentrancyGuard {
     uint256 public constant NETWORK_FEE_NUMERATOR = 1; // 0.5%
     uint256 public constant NETWORK_FEE_DENOMINATOR = 200;
 
-    address payable private constant BURN_ADDRESS = payable(0xff00000000000000000000000000000000000063);
     IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
 
     // Events
@@ -774,8 +775,7 @@ contract Payments is ReentrancyGuard {
         uint256 available = account.funds - account.lockupCurrent;
         require(amount <= available, Errors.InsufficientUnlockedFunds(available, amount));
         if (token == NATIVE_TOKEN) {
-            (bool success,) = payable(to).call{value: amount}("");
-            require(success, Errors.NativeTransferFailed(to, amount));
+            require(FVMPay.pay(to, amount), Errors.NativeTransferFailed(to, amount));
         } else {
             uint256 actual = transferOut(token, to, amount);
             if (amount != actual) {
@@ -1086,8 +1086,7 @@ contract Payments is ReentrancyGuard {
         // ceil()
         fee = (amount * NETWORK_FEE_NUMERATOR + (NETWORK_FEE_DENOMINATOR - 1)) / NETWORK_FEE_DENOMINATOR;
         if (token == NATIVE_TOKEN) {
-            (bool success,) = BURN_ADDRESS.call{value: fee}("");
-            require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
+            require(FVMPay.burn(fee), Errors.NativeTransferFailed(BURN_ADDRESS, fee));
         } else {
             accounts[token][address(this)].funds += fee;
             // start fee auction if necessary
@@ -1821,8 +1820,7 @@ contract Payments is ReentrancyGuard {
         auction.startPrice = uint88(auctionPrice);
         auction.startTime = uint168(block.timestamp);
 
-        (bool success,) = BURN_ADDRESS.call{value: msg.value}("");
-        require(success, Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
+        require(FVMPay.burn(msg.value), Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
 
         uint256 actual = transferOut(token, recipient, requested);
         fees.funds = available - actual;
