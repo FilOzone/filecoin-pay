@@ -15,7 +15,7 @@ uint88 constant UINT88_MAX = 0xffffffffffffffffffffff;
 
 // FIL max supply cap is 2 billion
 uint88 constant MAX_AUCTION_START_PRICE = UINT88_MAX; // 309,485,009.821345068724781055 FIL
-uint88 constant FIRST_AUCTION_START_PRICE = 31.32 ether; // 31.32 FIL
+uint88 constant FIRST_AUCTION_START_PRICE = 0.5 ether; // 0.5 FIL
 
 interface IValidator {
     struct ValidationResult {
