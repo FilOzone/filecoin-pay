@@ -5,14 +5,34 @@ All notable changes to this project will be documented in this file. The format 
 ## [Unreleased]
 
 ### Added
-- Support for ERC-3009 (Transfer with authorization) ([#214](https://github.com/FilOzone/filecoin-pay/pull/214))
-- Support for relayers to submit deposit transactions ([#217](https://github.com/FilOzone/filecoin-pay/pull/217))
-- Network fee charging in settlement operations ([#224](https://github.com/FilOzone/filecoin-pay/pull/224))
-- IERC20 type improvements and label mapping keys ([#225](https://github.com/FilOzone/filecoin-pay/pull/225))
 
 ### Changed
 
 ### Fixed
+
+## [0.6.0] - Filecoin-Pay M3
+
+### Deployed
+- **Calibration**: [0x6dB198201F900c17e86D267d7Df82567FB03df5E](https://calibration.filfox.info/en/address/0x6dB198201F900c17e86D267d7Df82567FB03df5E)
+- **Mainnet**: [0x7DaE6F488651ec5CEE38c9DFbd7d31223eAe1DDE](https://filfox.info/en/address/0x7DaE6F488651ec5CEE38c9DFbd7d31223eAe1DDE)
+
+### Added
+- Support for ERC-3009 (Transfer with authorization) ([#214](https://github.com/FilOzone/filecoin-pay/pull/214))
+- Support for relayers to submit deposit transactions ([#217](https://github.com/FilOzone/filecoin-pay/pull/217))
+- Network fee charging in settlement operations ([#224](https://github.com/FilOzone/filecoin-pay/pull/224))
+- IERC20 type improvements and label mapping keys ([#225](https://github.com/FilOzone/filecoin-pay/pull/225))
+- Fee auction functionality ([#229](https://github.com/FilOzone/filecoin-pay/pull/229))
+- feat: burn via precompile ([#234](https://github.com/FilOzone/filecoin-pay/pull/234))
+- Pagination support for `_getRailsForAddressAndToken` ([#237](https://github.com/FilOzone/filecoin-pay/pull/237))
+- feat!: Update auction starting price to 0.5 FIL ([#243](https://github.com/FilOzone/filecoin-pay/pull/243))
+
+### Changed
+- Restored settlement permissions allowing any participant to settle rails ([#221](https://github.com/FilOzone/filecoin-pay/pull/221))
+
+### Fixed
+- Network fee handling in `settleTerminatedRailWithoutValidation` ([#223](https://github.com/FilOzone/filecoin-pay/pull/223))
+- Add completed security audit report to readme ([#231](https://github.com/FilOzone/filecoin-pay/pull/231))
+
 
 ## [0.5.0] - Filecoin-Pay Developer Preview
 

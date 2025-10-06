@@ -41,9 +41,7 @@ The Filecoin Pay Payments contract enables ERC20 token payment flows through "ra
 
 ## Deployment Info
 
-- On calibration net at `0x0E690D3e60B0576D01352AB03b258115eb84A047`
-- Filecoin Pay Contract (Alpha) is on Mainnet at `0x8c81C77E433725393Ba1eD5439ACdA098278eE1A`
-  - **⚠️ WARNING (issued 2025-08-18): May be deprecated within 1-month without migration support. DO NOT use this deployment for production applications or store significant value.**
+Check the latest deployed contracts in [CHANGELOG.md](./CHANGELOG.md)
 
 ## Security Audits
 
