@@ -543,7 +543,7 @@ One-time payments require a two-step process:
 
 ```solidity
 // Allocate 10 tokens for one-time payments
-Payments.modifyRailLockup(
+FilecoinPayV1.modifyRailLockup(
     railId,       // Rail ID
     lockupPeriod, // Lockup period (unchanged or new value)
     10 * 10**18   // Fixed lockup amount
@@ -558,7 +558,7 @@ This will revert if:
 
 ```solidity
 // Make a 5 token one-time payment from the locked funds
-Payments.modifyRailPayment(
+FilecoinPayV1.modifyRailPayment(
     railId,      // Rail ID
     newRate,     // Payment rate (can remain unchanged)
     5 * 10**18   // One-time payment amount (must be ≤ rail.lockupFixed)
@@ -702,7 +702,8 @@ A payer first deposits tokens to fund their account in the payments contract:
 IERC20(tokenAddress).approve(paymentsContractAddress, 100 * 10**18); // 100 tokens
 
 // 2. Payer or anyone else can deposit to the payer's account
-Payments(paymentsContractAddress).deposit(
+FilecoinPayV1 payments = FilecoinPayV1(paymentsContractAddress);
+payments.deposit(
     tokenAddress,   // ERC20 token address
     payerAddress,  // Recipient's address (the payer)
     100 * 10**18    // Amount to deposit (100 tokens)
@@ -713,7 +714,8 @@ Payments(paymentsContractAddress).deposit(
 
 ```solidity
 // Payer signs a permit off-chain and deposits in one transaction
-Payments(paymentsContractAddress).depositWithPermit(
+FilecoinPayV1 payments = FilecoinPayV1(paymentsContractAddress);
+payments.depositWithPermit(
     tokenAddress,   // ERC20 token address (must support EIP-2612)
     payerAddress,  // Recipient's address (must be the permit signer)
     100 * 10**18,   // Amount to deposit (100 tokens)
@@ -736,7 +738,8 @@ If you've already deposited funds, you can approve operators separately:
 
 ```solidity
 // Payer approves a service contract as an operator
-Payments(paymentsContractAddress).setOperatorApproval(
+FilecoinPayV1 payments = FilecoinPayV1(paymentsContractAddress);
+payments.setOperatorApproval(
     tokenAddress,           // ERC20 token address
     serviceContractAddress, // Operator address (service contract)
     true,                   // Approval status
@@ -752,7 +755,8 @@ For EIP-2612 tokens, you can combine funding and operator approval:
 
 ```solidity
 // Payer signs permit off-chain, then deposits AND approves operator in one transaction
-Payments(paymentsContractAddress).depositWithPermitAndApproveOperator(
+FilecoinPayV1 payments = FilecoinPayV1(paymentsContractAddress);
+payments.depositWithPermitAndApproveOperator(
     tokenAddress,           // ERC20 token address (must support EIP-2612)
     payerAddress,          // Recipient's address (must be the permit signer)
     100 * 10**18,           // Amount to deposit (100 tokens)
@@ -777,7 +781,8 @@ When a payer proposes a deal with a payee, the service contract (acting as an op
 
 ```solidity
 // Service contract creates a rail
-uint256 railId = Payments(paymentsContractAddress).createRail(
+FilecoinPayV1 payments = FilecoinPayV1(paymentsContractAddress);
+uint256 railId = payments.createRail(
     tokenAddress,       // Token used for payments
     payerAddress,      // Payer (payer)
     payee,    // Payee (payee)
@@ -787,7 +792,7 @@ uint256 railId = Payments(paymentsContractAddress).createRail(
 );
 
 // Set up initial lockup for onboarding costs - for example, 10 tokens as fixed lockup
-Payments(paymentsContractAddress).modifyRailLockup(
+payments.modifyRailLockup(
     railId,         // Rail ID
     100,            // Lockup period (100 epochs)
     10 * 10**18     // Fixed lockup amount (10 tokens for onboarding)
@@ -807,7 +812,7 @@ When the payee accepts the deal, the operator starts the payment stream:
 
 ```solidity
 // Service contract (operator) increases the payment rate and makes a one-time payment
-Payments(paymentsContractAddress).modifyRailPayment(
+payments.modifyRailPayment(
     railId,           // Rail ID
     2 * 10**18,       // New payment rate (2 tokens per epoch)
     3 * 10**18        // One-time onboarding payment (3 tokens)
@@ -825,7 +830,7 @@ Payment settlement can be triggered by any rail participant to process due payme
 
 ```solidity
 // Settlement call - can be made by payer, payee, or operator
-(uint256 amount, uint256 settledEpoch, string memory note) = Payments(paymentsContractAddress).settleRail(
+(uint256 amount, uint256 settledEpoch, string memory note) = payments.settleRail(
     railId,        // Rail ID
     block.number   // Settle up to current epoch
 );
@@ -846,14 +851,14 @@ If service terms change, the operator can adjust the rail's parameters.
 
 ```solidity
 // Operator modifies payment parameters
-Payments(paymentsContractAddress).modifyRailPayment(
+payments.modifyRailPayment(
     railId,           // Rail ID
     4 * 10**18,       // Increased rate (4 tokens per epoch)
     0                 // No one-time payment
 );
 
 // If lockup terms need changing
-Payments(paymentsContractAddress).modifyRailLockup(
+payments.modifyRailLockup(
     railId,         // Rail ID
     150,            // Extended lockup period (150 epochs)
     15 * 10**18     // Increased fixed lockup (15 tokens)
@@ -870,7 +875,7 @@ The operator can set the payment rate to zero and optionally charge a final term
 
 ```solidity
 // Service contract reduces payment rate and issues an optional termination payment
-Payments(paymentsContractAddress).modifyRailPayment(
+payments.modifyRailPayment(
     railId,        // Rail ID
     0,             // Zero out payment rate
     5 * 10**18     // Termination fee (5 tokens)
@@ -883,7 +888,7 @@ The operator (or a fully-funded payer) can call `terminateRail`. This formally e
 
 ```solidity
 // Operator or payer terminates the rail
-Payments(paymentsContractAddress).terminateRail(railId);
+payments.terminateRail(railId);
 ```
 
 ### 8. Final Settlement and Withdrawal
@@ -892,16 +897,16 @@ After a rail is terminated and its final settlement window (`endEpoch`) has been
 
 ```solidity
 // 1. First, get the rail's details to find its endEpoch
-RailView memory railInfo = Payments(paymentsContractAddress).getRail(railId);
+RailView memory railInfo = payments.getRail(railId);
 
 // 2. Perform the final settlement up to the endEpoch
-(uint256 amount, uint256 settledEpoch, string memory note) = Payments(paymentsContractAddress).settleRail(
+(uint256 amount, uint256 settledEpoch, string memory note) = payments.settleRail(
     railId,
     railInfo.endEpoch
 );
 
 // 3. Payer can now withdraw all remaining funds that are no longer locked
-Payments(paymentsContractAddress).withdraw(
+payments.withdraw(
     tokenAddress,
     remainingAmount // Amount to withdraw
 );
@@ -921,7 +926,7 @@ If something goes wrong (e.g., the operator is buggy and is refusing to terminat
 
 ```solidity
 // Payer terminates the rail
-Payments(paymentsContractAddress).terminateRail(railId);
+payments.terminateRail(railId);
 ```
 
 - **Requirements**: The payer must ensure their account is fully funded (`isAccountLockupFullySettled` is true) before they can terminate any rails.
@@ -942,7 +947,7 @@ If a validator contract is malfunctioning, the _payer_ may forcibly settle the r
 
 ```solidity
 // Emergency settlement for terminated rails with stuck validation
-(uint256 amount, uint256 settledEpoch, string memory note) = Payments(paymentsContractAddress).settleTerminatedRailWithoutValidation(railId);
+(uint256 amount, uint256 settledEpoch, string memory note) = payments.settleTerminatedRailWithoutValidation(railId);
 ```
 
 ### Payer Reducing Operator Allowance After Deal Proposal
@@ -966,7 +971,7 @@ From the fixed lockup, the operator can still use the `modifyRailPayment` functi
 
 **Example Usage:**
 ```solidity
-Payments.modifyRailPayment(
+payments.modifyRailPayment(
     railId,
     0,
     oneTimePayment
