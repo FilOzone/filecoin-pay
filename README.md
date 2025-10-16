@@ -1,6 +1,6 @@
 # Filecoin Pay
 
-The Filecoin Pay Payments contract enables ERC20 token payment flows through "rails" - automated payment channels between payers and recipients. The contract supports continuous rate based payments, one-time transfers, and payment validation during settlement.
+The Filecoin Pay V1 contract enables ERC20 token payment flows through "rails" - automated payment channels between payers and recipients. The contract supports continuous rate based payments, one-time transfers, and payment validation during settlement.
 
 - [Deployment Info](#deployment-info)
 - [Key Concepts](#key-concepts)
@@ -80,7 +80,7 @@ A validator is an optional contract that acts as a trusted arbitrator for a rail
 When a validator is assigned to a rail, it gains the ability to:
 
 -   **Mediate Payments:** During settlement, a validator can prevent a payment, refuse to settle past a certain epoch, or reduce the payout amount to account for actual services rendered, penalties, etc.
--   **Oversee Termination:** When `terminateRail` is called by either the payer or the operator, the Payments contract makes a synchronous call to the validator's `railTerminated` function. The payee (payee) cannot directly terminate a rail.
+-   **Oversee Termination:** When `terminateRail` is called by either the payer or the operator, the FilecoinPayV1 contract makes a synchronous call to the validator's `railTerminated` function. The payee (payee) cannot directly terminate a rail.
 -   **Veto Termination:** The validator can block the termination attempt entirely by reverting inside the `railTerminated` callback. This gives the validator the ultimate say on whether a rail can be terminated, irrespective of who initiated the call.
 
 ### Operator
@@ -181,7 +181,7 @@ Functions for managing user accounts, including depositing and withdrawing funds
 
 Deposits tokens into a specified account. This is the standard method for funding an account if not using permits. It intelligently handles fee-on-transfer tokens by calculating the actual amount received by the contract.
 
-**When to use:** Use this for direct transfers from a wallet or another contract that has already approved the Payments contract to spend tokens.
+**When to use:** Use this for direct transfers from a wallet or another contract that has already approved the FilecoinPayV1 contract to spend tokens.
 
 **Native Token (FIL):** To deposit the native network token, use `address(0)` for the `token` parameter and send the corresponding amount in the transaction's `value`.
 
@@ -191,7 +191,7 @@ Deposits tokens into a specified account. This is the standard method for fundin
 - `amount`: The amount of tokens to transfer.
 
 **Requirements**:
-- For ERC20s, the direct caller (`msg.sender`) must have approved the Payments contract to transfer at least `amount` of the specified `token`.
+- For ERC20s, the direct caller (`msg.sender`) must have approved the FilecoinPayV1 contract to transfer at least `amount` of the specified `token`.
 - For the native token, `msg.value` must equal `amount`.
 
 #### `depositWithPermit(address token, address to, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)`
@@ -260,7 +260,7 @@ Similar to the above, but for increasing the allowances of an *existing* operato
 
 Withdraws available (unlocked) tokens from the caller's account to their own wallet address.
 
-**When to use:** When a user wants to retrieve funds from the Payments contract that are not currently reserved in lockups for active rails.
+**When to use:** When a user wants to retrieve funds from the FilecoinPayV1 contract that are not currently reserved in lockups for active rails.
 
 **Native Token (FIL):** To withdraw the native network token, use `address(0)` for the `token` parameter.
 
@@ -650,7 +650,7 @@ If a rail has a validator, `settleRail` will call the `validatePayment` function
 -   **It can modify the payment amount** for the settled period by returning a `modifiedAmount`.
 -   **It can effectively reject settlement** for a segment by returning 0 for the settlement duration (`result.settleUpto` equals `epochStart`).
 
-However, the validator's power is not absolute. The Payments contract enforces these critical constraints on the validator's response:
+However, the validator's power is not absolute. The FilecoinPayV1 contract enforces these critical constraints on the validator's response:
 -   It **cannot** settle a rail beyond the proposed settlement segment.
 -   It **cannot** approve a payment amount that is greater than the maximum allowed by the rail's `paymentRate` for the duration it is approving.
 
@@ -689,7 +689,7 @@ The contract supports optional payment validation through the `IValidator` inter
 
 ## Worked Example
 
-This worked example demonstrates how users interact with the FWS Payments contract through a typical service deal lifecycle.
+This worked example demonstrates how users interact with the FWS FilecoinPayV1 contract through a typical service deal lifecycle.
 
 ### 1. Initial Funding
 
@@ -698,7 +698,7 @@ A payer first deposits tokens to fund their account in the payments contract:
 #### Traditional Approach (Two transactions):
 
 ```solidity
-// 1. Payer approves the Payments contract to spend tokens
+// 1. Payer approves the FilecoinPayV1 contract to spend tokens
 IERC20(tokenAddress).approve(paymentsContractAddress, 100 * 10**18); // 100 tokens
 
 // 2. Payer or anyone else can deposit to the payer's account

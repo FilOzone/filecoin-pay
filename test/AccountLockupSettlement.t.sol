@@ -2,13 +2,13 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
 
 contract AccountLockupSettlementTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;
-    Payments payments;
+    FilecoinPayV1 payments;
 
     // Define constants
     uint256 internal constant DEPOSIT_AMOUNT = 100 ether;

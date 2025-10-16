@@ -1,5 +1,5 @@
 #! /bin/bash
-# deploy.sh deploys the Payments contract to the specified network
+# deploy.sh deploys the FilecoinPayV1 contract to the specified network
 # Usage: ./tools/deploy.sh <chain_id>
 # Example: ./tools/deploy.sh 314159 (calibnet)
 #          ./tools/deploy.sh 314 (mainnet)
@@ -34,23 +34,23 @@ if [ -z "${PASSWORD:-}" ]; then
 fi
 
 ADDR=$(cast wallet address --keystore "$KEYSTORE" --password "$PASSWORD")
-echo "Deploying Payments from address $ADDR to chain $CHAIN_ID"
+echo "Deploying FilecoinPayV1 from address $ADDR to chain $CHAIN_ID"
 NONCE="$(cast nonce --rpc-url "$RPC_URL" "$ADDR")"
 
 # Use PAYMENTS_PATH if set, otherwise default
 if [ -z "${PAYMENTS_PATH:-}" ]; then
-  PAYMENTS_PATH="src/Payments.sol:Payments"
+  PAYMENTS_PATH="src/FilecoinPayV1.sol:FilecoinPayV1"
 fi
 
-echo "Deploying Payments implementation ($PAYMENTS_PATH)"
+echo "Deploying FilecoinPayV1 implementation ($PAYMENTS_PATH)"
 export PAYMENTS_CONTRACT_ADDRESS=$(forge create --rpc-url "$RPC_URL" --keystore "$KEYSTORE" --password "$PASSWORD" --broadcast --nonce $NONCE --chain-id $CHAIN_ID $PAYMENTS_PATH | grep "Deployed to" | awk '{print $3}')
 if [ -z "$PAYMENTS_CONTRACT_ADDRESS" ]; then
-    echo "Error: Failed to extract Payments implementation contract address"
+    echo "Error: Failed to extract FilecoinPayV1 implementation contract address"
     exit 1
 fi
-echo "Payments Address: $PAYMENTS_CONTRACT_ADDRESS"
+echo "FilecoinPayV1 Address: $PAYMENTS_CONTRACT_ADDRESS"
 
 echo ""
 echo "=== DEPLOYMENT SUMMARY ==="
-echo "Payments Contract Address: $PAYMENTS_CONTRACT_ADDRESS"
+echo "FilecoinPayV1 Contract Address: $PAYMENTS_CONTRACT_ADDRESS"
 echo "=========================="

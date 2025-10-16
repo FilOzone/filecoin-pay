@@ -3,7 +3,7 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {RailSettlementHelpers} from "./helpers/RailSettlementHelpers.sol";
@@ -12,7 +12,7 @@ import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
 contract FeesTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;
     RailSettlementHelpers settlementHelper;
-    Payments payments;
+    FilecoinPayV1 payments;
 
     // Multiple tokens for testing
     MockERC20 token1;

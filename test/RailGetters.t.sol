@@ -5,7 +5,7 @@ pragma solidity ^0.8.27;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {RailSettlementHelpers} from "./helpers/RailSettlementHelpers.sol";
@@ -14,7 +14,7 @@ import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
 contract PayeeRailsTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;
     RailSettlementHelpers settlementHelper;
-    Payments payments;
+    FilecoinPayV1 payments;
     MockERC20 token;
 
     // Secondary token for multi-token testing
@@ -149,7 +149,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
 
     function testGetRailsForPayeeAndToken() public view {
         // Test getting all rails for USER2 and token1 (should include terminated)
-        (Payments.RailInfo[] memory rails,,) = payments.getRailsForPayeeAndToken(USER2, token, 0, 3);
+        (FilecoinPayV1.RailInfo[] memory rails,,) = payments.getRailsForPayeeAndToken(USER2, token, 0, 3);
 
         // Should include 3 rails: rail1Id, rail2Id, and rail3Id (terminated)
         assertEq(rails.length, 3, "Should have 3 rails for USER2 with token1");
@@ -180,14 +180,14 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         assertTrue(foundRail3, "Rail 3 not found");
 
         // Test different token (should only return rails for that token)
-        (Payments.RailInfo[] memory token2Rail,,) = payments.getRailsForPayeeAndToken(USER2, token2, 0, 0);
+        (FilecoinPayV1.RailInfo[] memory token2Rail,,) = payments.getRailsForPayeeAndToken(USER2, token2, 0, 0);
 
         // Should include only 1 rail with token2: rail4Id
         assertEq(token2Rail.length, 1, "Should have 1 rail for USER2 with token2");
         assertEq(token2Rail[0].railId, rail4Id, "Rail ID should match rail4Id");
 
         // Test different payee (should only return rails for that payee)
-        (Payments.RailInfo[] memory user3Rails,,) = payments.getRailsForPayeeAndToken(USER3, token, 0, 0);
+        (FilecoinPayV1.RailInfo[] memory user3Rails,,) = payments.getRailsForPayeeAndToken(USER3, token, 0, 0);
 
         // Should include only 1 rail for USER3: rail5Id
         assertEq(user3Rails.length, 1, "Should have 1 rail for USER3 with token1");
@@ -196,7 +196,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
 
     function testGetRailsForPayerAndToken() public view {
         // Test getting all rails for USER1 (payer) and token1 (should include terminated)
-        (Payments.RailInfo[] memory rails,,) = payments.getRailsForPayerAndToken(USER1, token, 0, 4);
+        (FilecoinPayV1.RailInfo[] memory rails,,) = payments.getRailsForPayerAndToken(USER1, token, 0, 4);
 
         // Should include 4 rails: rail1Id, rail2Id, rail3Id (terminated), and rail5Id
         assertEq(rails.length, 4, "Should have 4 rails for USER1 with token1");
@@ -233,7 +233,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         assertTrue(foundRail5, "Rail 5 not found");
 
         // Test different token (should only return rails for that token)
-        (Payments.RailInfo[] memory token2Rails,,) = payments.getRailsForPayerAndToken(USER1, token2, 0, 0);
+        (FilecoinPayV1.RailInfo[] memory token2Rails,,) = payments.getRailsForPayerAndToken(USER1, token2, 0, 0);
 
         // Should include only 1 rail with token2: rail4Id
         assertEq(token2Rails.length, 1, "Should have 1 rail for USER1 with token2");
@@ -242,8 +242,8 @@ contract PayeeRailsTest is Test, BaseTestHelper {
 
     function testRailsBeyondEndEpoch() public {
         // Get the initial rails when Rail 3 is terminated but not beyond its end epoch
-        (Payments.RailInfo[] memory initialPayeeRails,,) = payments.getRailsForPayeeAndToken(USER2, token, 0, 3);
-        (Payments.RailInfo[] memory initialPayerRails,,) = payments.getRailsForPayerAndToken(USER1, token, 0, 4);
+        (FilecoinPayV1.RailInfo[] memory initialPayeeRails,,) = payments.getRailsForPayeeAndToken(USER2, token, 0, 3);
+        (FilecoinPayV1.RailInfo[] memory initialPayerRails,,) = payments.getRailsForPayerAndToken(USER1, token, 0, 4);
 
         // Should include all 3 rails for payee
         assertEq(initialPayeeRails.length, 3, "Should have 3 rails initially for payee");
@@ -269,8 +269,8 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         payments.settleRail(rail3Id, endEpoch);
 
         // Get rails again for both payee and payer
-        (Payments.RailInfo[] memory finalPayeeRails,,) = payments.getRailsForPayeeAndToken(USER2, token, 0, 3);
-        (Payments.RailInfo[] memory finalPayerRails,,) = payments.getRailsForPayerAndToken(USER1, token, 0, 4);
+        (FilecoinPayV1.RailInfo[] memory finalPayeeRails,,) = payments.getRailsForPayeeAndToken(USER2, token, 0, 3);
+        (FilecoinPayV1.RailInfo[] memory finalPayerRails,,) = payments.getRailsForPayerAndToken(USER1, token, 0, 4);
 
         // Should include only 2 rails now for payee, as Rail 3 is beyond its end epoch
         assertEq(finalPayeeRails.length, 2, "Should have 2 rails for payee after advancing beyond end epoch");
@@ -303,20 +303,20 @@ contract PayeeRailsTest is Test, BaseTestHelper {
 
     function testEmptyResult() public view {
         // Test non-existent payee
-        (Payments.RailInfo[] memory nonExistentPayee,,) = payments.getRailsForPayeeAndToken(address(0x123), token, 0, 0);
+        (FilecoinPayV1.RailInfo[] memory nonExistentPayee,,) = payments.getRailsForPayeeAndToken(address(0x123), token, 0, 0);
         assertEq(nonExistentPayee.length, 0, "Should return empty array for non-existent payee");
 
         // Test non-existent payer
-        (Payments.RailInfo[] memory nonExistentPayer,,) = payments.getRailsForPayerAndToken(address(0x123), token, 0, 0);
+        (FilecoinPayV1.RailInfo[] memory nonExistentPayer,,) = payments.getRailsForPayerAndToken(address(0x123), token, 0, 0);
         assertEq(nonExistentPayer.length, 0, "Should return empty array for non-existent payer");
 
         // Test non-existent token for payee
-        (Payments.RailInfo[] memory nonExistentTokenForPayee,,) =
+        (FilecoinPayV1.RailInfo[] memory nonExistentTokenForPayee,,) =
             payments.getRailsForPayeeAndToken(USER2, IERC20(address(0x456)), 0, 0);
         assertEq(nonExistentTokenForPayee.length, 0, "Should return empty array for non-existent token with payee");
 
         // Test non-existent token for payer
-        (Payments.RailInfo[] memory nonExistentTokenForPayer,,) =
+        (FilecoinPayV1.RailInfo[] memory nonExistentTokenForPayer,,) =
             payments.getRailsForPayerAndToken(USER1, IERC20(address(0x456)), 0, 0);
         assertEq(nonExistentTokenForPayer.length, 0, "Should return empty array for non-existent token with payer");
     }
@@ -325,7 +325,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         // Test pagination for payee rails (USER2 has 3 rails with token1)
 
         // Test getting first 2 rails
-        (Payments.RailInfo[] memory page1, uint256 nextOffset1, uint256 total1) =
+        (FilecoinPayV1.RailInfo[] memory page1, uint256 nextOffset1, uint256 total1) =
             payments.getRailsForPayeeAndToken(USER2, token, 0, 2);
 
         assertEq(page1.length, 2, "First page should have 2 rails");
@@ -333,7 +333,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         assertEq(total1, 3, "Total should be 3");
 
         // Test getting remaining rail
-        (Payments.RailInfo[] memory page2, uint256 nextOffset2, uint256 total2) =
+        (FilecoinPayV1.RailInfo[] memory page2, uint256 nextOffset2, uint256 total2) =
             payments.getRailsForPayeeAndToken(USER2, token, nextOffset1, 2);
 
         assertEq(page2.length, 1, "Second page should have 1 rail");
@@ -353,7 +353,7 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         assertFalse(duplicateFound, "No duplicate rails should exist between pages");
 
         // Test offset beyond array length
-        (Payments.RailInfo[] memory emptyPage, uint256 nextOffset3, uint256 total3) =
+        (FilecoinPayV1.RailInfo[] memory emptyPage, uint256 nextOffset3, uint256 total3) =
             payments.getRailsForPayeeAndToken(USER2, token, 10, 2);
 
         assertEq(emptyPage.length, 0, "Should return empty array for offset beyond length");
@@ -361,14 +361,14 @@ contract PayeeRailsTest is Test, BaseTestHelper {
         assertEq(total3, 3, "Total should still be 3");
 
         // Test pagination for payer rails (USER1 has 4 rails with token1)
-        (Payments.RailInfo[] memory payerPage1, uint256 payerNext1, uint256 payerTotal1) =
+        (FilecoinPayV1.RailInfo[] memory payerPage1, uint256 payerNext1, uint256 payerTotal1) =
             payments.getRailsForPayerAndToken(USER1, token, 0, 3);
 
         assertEq(payerPage1.length, 3, "Payer first page should have 3 rails");
         assertEq(payerNext1, 3, "Payer next offset should be 3");
         assertEq(payerTotal1, 4, "Payer total should be 4");
 
-        (Payments.RailInfo[] memory payerPage2, uint256 payerNext2, uint256 payerTotal2) =
+        (FilecoinPayV1.RailInfo[] memory payerPage2, uint256 payerNext2, uint256 payerTotal2) =
             payments.getRailsForPayerAndToken(USER1, token, payerNext1, 3);
 
         assertEq(payerPage2.length, 1, "Payer second page should have 1 rail");

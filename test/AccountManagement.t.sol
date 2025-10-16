@@ -4,14 +4,14 @@ pragma solidity ^0.8.27;
 import {MockFVMTest} from "fvm-solidity/mocks/MockFVMTest.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
 import {Errors} from "../src/Errors.sol";
 
 contract AccountManagementTest is MockFVMTest, BaseTestHelper {
     PaymentsTestHelpers helper;
-    Payments payments;
+    FilecoinPayV1 payments;
 
     uint256 internal constant DEPOSIT_AMOUNT = 100 ether;
     uint256 internal constant INITIAL_BALANCE = 1000 ether;

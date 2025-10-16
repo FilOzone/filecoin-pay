@@ -6,11 +6,11 @@ import {BURN_ADDRESS} from "fvm-solidity/FVMActors.sol";
 
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {ExtraFeeToken} from "./mocks/ExtraFeeToken.sol";
-import {FIRST_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
+import {FIRST_AUCTION_START_PRICE, FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 
 contract BurnFeeOnTransferTokenTest is MockFVMTest {
     PaymentsTestHelpers helper = new PaymentsTestHelpers();
-    Payments payments;
+    FilecoinPayV1 payments;
     ExtraFeeToken feeToken;
 
     uint256 railId;

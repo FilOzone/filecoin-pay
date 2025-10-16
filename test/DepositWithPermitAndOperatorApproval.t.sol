@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
@@ -11,7 +11,7 @@ import {Errors} from "../src/Errors.sol";
 contract DepositWithPermitAndOperatorApproval is Test, BaseTestHelper {
     MockERC20 testToken;
     PaymentsTestHelpers helper;
-    Payments payments;
+    FilecoinPayV1 payments;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 ether;
     uint256 constant RATE_ALLOWANCE = 100 ether;

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
@@ -10,7 +10,7 @@ import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
 contract DepositWithAuthorization is Test, BaseTestHelper {
     MockERC20 testToken;
     PaymentsTestHelpers helper;
-    Payments payments;
+    FilecoinPayV1 payments;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 ether;
     uint256 constant RATE_ALLOWANCE = 100 ether;
@@ -44,7 +44,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Pre-state capture
         uint256 fromBalanceBefore = helper._balanceOf(from, false);
         uint256 paymentsBalanceBefore = helper._balanceOf(address(payments), false);
-        Payments.Account memory toAccountBefore = helper._getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountBefore = helper._getAccountData(to, false);
 
         // Build signature
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
@@ -68,7 +68,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Post-state capture
         uint256 fromBalanceAfter = helper._balanceOf(from, false);
         uint256 paymentsBalanceAfter = helper._balanceOf(address(payments), false);
-        Payments.Account memory toAccountAfter = helper._getAccountData(from, false);
+        FilecoinPayV1.Account memory toAccountAfter = helper._getAccountData(from, false);
 
         // Assertions
         helper._assertDepositBalances(
@@ -181,7 +181,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Pre-state capture
         uint256 fromBalanceBefore = helper._balanceOf(from, false);
         uint256 paymentsBalanceBefore = helper._balanceOf(address(payments), false);
-        Payments.Account memory toAccountBefore = helper._getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountBefore = helper._getAccountData(to, false);
 
         (uint8 v, bytes32 r, bytes32 s) = helper.getReceiveWithAuthorizationSignature(
             user1Sk, testToken, from, address(payments), amount, validAfter, validBefore, nonce
@@ -199,7 +199,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Post-state capture
         uint256 fromBalanceAfter = helper._balanceOf(from, false);
         uint256 paymentsBalanceAfter = helper._balanceOf(address(payments), false);
-        Payments.Account memory toAccountAfter = helper._getAccountData(from, false);
+        FilecoinPayV1.Account memory toAccountAfter = helper._getAccountData(from, false);
 
         // Assertions
         helper._assertDepositBalances(
@@ -232,7 +232,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Pre-state capture
         uint256 fromBalanceBefore = helper._balanceOf(from, false);
         uint256 paymentsBalanceBefore = helper._balanceOf(address(payments), false);
-        Payments.Account memory toAccountBefore = helper._getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountBefore = helper._getAccountData(to, false);
 
         // Attempt to submit as a different user
         address relayer = vm.addr(user2Sk);
@@ -243,7 +243,7 @@ contract DepositWithAuthorization is Test, BaseTestHelper {
         // Post-state capture
         uint256 fromBalanceAfter = helper._balanceOf(from, false);
         uint256 paymentsBalanceAfter = helper._balanceOf(address(payments), false);
-        Payments.Account memory toAccountAfter = helper._getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountAfter = helper._getAccountData(to, false);
 
         // Assertions
         helper._assertDepositBalances(

@@ -7,14 +7,14 @@ import {BURN_ADDRESS} from "fvm-solidity/FVMActors.sol";
 
 import {Dutch} from "../src/Dutch.sol";
 import {Errors} from "../src/Errors.sol";
-import {FIRST_AUCTION_START_PRICE, MAX_AUCTION_START_PRICE, Payments} from "../src/Payments.sol";
+import {FIRST_AUCTION_START_PRICE, MAX_AUCTION_START_PRICE, FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 
 contract BurnTest is MockFVMTest {
     using Dutch for uint256;
 
     PaymentsTestHelpers helper = new PaymentsTestHelpers();
-    Payments payments;
+    FilecoinPayV1 payments;
     uint256 testTokenRailId;
     uint256 nativeTokenRailId;
 

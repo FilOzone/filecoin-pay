@@ -5,7 +5,7 @@ pragma solidity ^0.8.27;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
@@ -14,7 +14,7 @@ import {Errors} from "../src/Errors.sol";
 contract OperatorApprovalTest is Test, BaseTestHelper {
     MockERC20 secondToken;
     PaymentsTestHelpers helper;
-    Payments payments;
+    FilecoinPayV1 payments;
 
     uint256 constant DEPOSIT_AMOUNT = 1000 ether;
     uint256 constant RATE_ALLOWANCE = 100 ether;
@@ -377,7 +377,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         vm.stopPrank();
 
         // Verify fixed lockup is now zero
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         assertEq(rail.lockupFixed, 0, "Fixed lockup should be zero");
 
         // 3. Test excessive payment reverts
@@ -422,7 +422,7 @@ contract OperatorApprovalTest is Test, BaseTestHelper {
         vm.stopPrank();
 
         // Check that one-time payment succeeded despite reduced allowance
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         assertEq(rail.lockupFixed, fixedLockup - 300 ether, "Fixed lockup not reduced correctly");
 
         // 2. Test zero allowance after fixed lockup set
