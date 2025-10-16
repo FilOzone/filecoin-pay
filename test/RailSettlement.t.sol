@@ -959,4 +959,20 @@ contract RailSettlementTest is Test, BaseTestHelper {
         );
         payments.modifyRailPayment(railId, 5 ether, 1 ether);
     }
+
+    function testSettleRailWithZeroRateDirectly() public {
+        // Create a rail with zero rate from the start
+        uint256 railId =
+            helper.setupRailWithParameters(USER1, USER2, OPERATOR, 0, 10, 0, address(0), SERVICE_FEE_RECIPIENT);
+
+        // Advance some blocks
+        helper.advanceBlocks(5);
+
+        // Settle the rail
+        RailSettlementHelpers.SettlementResult memory result =
+            settlementHelper.settleRailAndVerify(railId, block.number, 0, block.number);
+
+        // Verify the note indicates zero rate
+        assertEq(result.note, "Zero rate payment rail", "Note should indicate zero rate");
+    }
 }
