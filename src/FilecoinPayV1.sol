@@ -1247,7 +1247,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
 
         // Process settlement depending on whether rate changes exist
         if (rail.rateChangeQueue.isEmpty()) {
-            (totalSettledAmount,, note) =
+            (totalSettledAmount, note) =
                 _settleSegmentGross(railId, startEpoch, maxSettlementEpoch, rail.paymentRate, skipValidation);
 
             require(
@@ -1351,7 +1351,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
             }
 
             // Settle the current segment with gross amounts (no fee calculation)
-            (uint256 segmentGrossSettled,, string memory validationNote) =
+            (uint256 segmentGrossSettled, string memory validationNote) =
                 _settleSegmentGross(railId, processedEpoch, segmentEndBoundary, segmentRate, skipValidation);
 
             // If validator returned no progress, exit early
@@ -1412,19 +1412,19 @@ contract FilecoinPayV1 is ReentrancyGuard {
         uint256 epochEnd,
         uint256 rate,
         bool skipValidation
-    ) internal returns (uint256 grossSettledAmount, uint256 settledUntilEpoch, string memory note) {
+    ) internal returns (uint256 grossSettledAmount, string memory note) {
         Rail storage rail = rails[railId];
         Account storage payer = accounts[rail.token][rail.from];
 
         if (rate == 0) {
             rail.settledUpTo = epochEnd;
-            return (0, epochEnd, "Zero rate payment rail");
+            return (0, "Zero rate payment rail");
         }
 
         // Calculate the default settlement values (without validation)
         uint256 duration = epochEnd - epochStart;
         grossSettledAmount = rate * duration;
-        settledUntilEpoch = epochEnd;
+        uint256 settledUntilEpoch = epochEnd;
         note = "";
 
         // If this rail has an validator and we're not skipping validation, let it decide on the final settlement amount
