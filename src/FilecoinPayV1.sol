@@ -1216,6 +1216,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
 
         Rail storage rail = rails[railId];
         Account storage payer = accounts[rail.token][rail.from];
+        Account storage payee = accounts[rail.token][rail.to];
 
         // Handle terminated and fully settled rails that are still not finalised
         if (isRailTerminated(rail, railId) && rail.settledUpTo >= rail.endEpoch) {
@@ -1246,15 +1247,22 @@ contract FilecoinPayV1 is ReentrancyGuard {
 
         // Process settlement depending on whether rate changes exist
         if (rail.rateChangeQueue.isEmpty()) {
-            (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, note) =
-                _settleSegment(railId, startEpoch, maxSettlementEpoch, rail.paymentRate, skipValidation);
+            (totalSettledAmount,, note) =
+                _settleSegmentGross(railId, startEpoch, maxSettlementEpoch, rail.paymentRate, skipValidation);
 
             require(
                 rail.settledUpTo > startEpoch, Errors.NoProgressInSettlement(railId, startEpoch + 1, rail.settledUpTo)
             );
+
+            // Apply fees once after gross settlement
+            (totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee) =
+                calculateAndPayFees(totalSettledAmount, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps);
+
+            // Credit payee
+            payee.funds += totalNetPayeeAmount;
         } else {
             (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, note) =
-                _settleWithRateChanges(railId, rail.paymentRate, startEpoch, maxSettlementEpoch, skipValidation);
+                _settleWithRateChanges(railId, rail.paymentRate, startEpoch, maxSettlementEpoch, skipValidation, payee);
         }
         finalSettledEpoch = rail.settledUpTo;
         note = checkAndFinalizeTerminatedRail(railId, rail, payer, note);
@@ -1310,7 +1318,8 @@ contract FilecoinPayV1 is ReentrancyGuard {
         uint256 currentRate,
         uint256 startEpoch,
         uint256 targetEpoch,
-        bool skipValidation
+        bool skipValidation,
+        Account storage payee
     )
         internal
         returns (
@@ -1323,7 +1332,6 @@ contract FilecoinPayV1 is ReentrancyGuard {
     {
         Rail storage rail = rails[railId];
         RateChangeQueue.Queue storage rateQueue = rail.rateChangeQueue;
-        Account storage payee = accounts[rail.token][rail.to];
 
         uint256 totalGrossSettled = 0;
         uint256 processedEpoch = startEpoch;
@@ -1497,30 +1505,6 @@ contract FilecoinPayV1 is ReentrancyGuard {
             payer.lockupCurrent <= payer.funds,
             Errors.LockupExceedsFundsInvariant(rail.token, rail.from, payer.lockupCurrent, payer.funds)
         );
-    }
-
-    function _settleSegment(uint256 railId, uint256 epochStart, uint256 epochEnd, uint256 rate, bool skipValidation)
-        internal
-        returns (
-            uint256 settledAmount,
-            uint256 netPayeeAmount,
-            uint256 operatorCommission,
-            uint256 networkFee,
-            string memory note
-        )
-    {
-        Rail storage rail = rails[railId];
-        Account storage payee = accounts[rail.token][rail.to];
-
-        // Use the gross settlement helper
-        (settledAmount,, note) = _settleSegmentGross(railId, epochStart, epochEnd, rate, skipValidation);
-
-        // Calculate fees, pay operator commission and track platform fees
-        (netPayeeAmount, operatorCommission, networkFee) =
-            calculateAndPayFees(settledAmount, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps);
-
-        // Credit payee
-        payee.funds += netPayeeAmount;
     }
 
     function isAccountLockupFullySettled(Account storage account) internal view returns (bool) {
