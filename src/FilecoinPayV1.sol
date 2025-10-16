@@ -1253,16 +1253,20 @@ contract FilecoinPayV1 is ReentrancyGuard {
             require(
                 rail.settledUpTo > startEpoch, Errors.NoProgressInSettlement(railId, startEpoch + 1, rail.settledUpTo)
             );
+        } else {
+            (totalSettledAmount, note) =
+                _settleWithRateChanges(railId, rail.paymentRate, startEpoch, maxSettlementEpoch, skipValidation);
+        }
 
-            // Apply fees once after gross settlement
+        // Apply fees once after settlement (for both paths)
+        if (totalSettledAmount > 0) {
             (totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee) =
                 calculateAndPayFees(totalSettledAmount, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps);
-
-            // Credit payee
             payee.funds += totalNetPayeeAmount;
         } else {
-            (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, note) =
-                _settleWithRateChanges(railId, rail.paymentRate, startEpoch, maxSettlementEpoch, skipValidation, payee);
+            totalNetPayeeAmount = 0;
+            totalOperatorCommission = 0;
+            totalNetworkFee = 0;
         }
         finalSettledEpoch = rail.settledUpTo;
         note = checkAndFinalizeTerminatedRail(railId, rail, payer, note);
@@ -1318,22 +1322,12 @@ contract FilecoinPayV1 is ReentrancyGuard {
         uint256 currentRate,
         uint256 startEpoch,
         uint256 targetEpoch,
-        bool skipValidation,
-        Account storage payee
-    )
-        internal
-        returns (
-            uint256 totalSettledAmount,
-            uint256 totalNetPayeeAmount,
-            uint256 totalOperatorCommission,
-            uint256 totalNetworkFee,
-            string memory note
-        )
-    {
+        bool skipValidation
+    ) internal returns (uint256 totalGrossSettled, string memory note) {
         Rail storage rail = rails[railId];
         RateChangeQueue.Queue storage rateQueue = rail.rateChangeQueue;
 
-        uint256 totalGrossSettled = 0;
+        totalGrossSettled = 0;
         uint256 processedEpoch = startEpoch;
         note = "";
 
@@ -1383,19 +1377,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
             }
         }
 
-        // Apply fees once after loop completion (whether normal completion or early exit)
-        if (totalGrossSettled > 0) {
-            (totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee) =
-                calculateAndPayFees(totalGrossSettled, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps);
-            payee.funds += totalNetPayeeAmount;
-        } else {
-            totalNetPayeeAmount = 0;
-            totalOperatorCommission = 0;
-            totalNetworkFee = 0;
-        }
-        totalSettledAmount = totalGrossSettled;
-
-        return (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, note);
+        return (totalGrossSettled, note);
     }
 
     function _getNextSegmentBoundary(
