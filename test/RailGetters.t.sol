@@ -303,11 +303,13 @@ contract PayeeRailsTest is Test, BaseTestHelper {
 
     function testEmptyResult() public view {
         // Test non-existent payee
-        (FilecoinPayV1.RailInfo[] memory nonExistentPayee,,) = payments.getRailsForPayeeAndToken(address(0x123), token, 0, 0);
+        (FilecoinPayV1.RailInfo[] memory nonExistentPayee,,) =
+            payments.getRailsForPayeeAndToken(address(0x123), token, 0, 0);
         assertEq(nonExistentPayee.length, 0, "Should return empty array for non-existent payee");
 
         // Test non-existent payer
-        (FilecoinPayV1.RailInfo[] memory nonExistentPayer,,) = payments.getRailsForPayerAndToken(address(0x123), token, 0, 0);
+        (FilecoinPayV1.RailInfo[] memory nonExistentPayer,,) =
+            payments.getRailsForPayerAndToken(address(0x123), token, 0, 0);
         assertEq(nonExistentPayer.length, 0, "Should return empty array for non-existent payer");
 
         // Test non-existent token for payee
