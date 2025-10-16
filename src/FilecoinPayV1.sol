@@ -1323,25 +1323,21 @@ contract FilecoinPayV1 is ReentrancyGuard {
     {
         Rail storage rail = rails[railId];
         RateChangeQueue.Queue storage rateQueue = rail.rateChangeQueue;
+        Account storage payee = accounts[rail.token][rail.to];
 
-        SettlementState memory state = SettlementState({
-            totalSettledAmount: 0,
-            totalNetPayeeAmount: 0,
-            totalOperatorCommission: 0,
-            totalNetworkFee: 0,
-            processedEpoch: startEpoch,
-            note: ""
-        });
+        uint256 totalGrossSettled = 0;
+        uint256 processedEpoch = startEpoch;
+        note = "";
 
         // Process each segment until we reach the target epoch or hit an early exit condition
-        while (state.processedEpoch < targetEpoch) {
+        while (processedEpoch < targetEpoch) {
             (uint256 segmentEndBoundary, uint256 segmentRate) =
-                _getNextSegmentBoundary(rateQueue, currentRate, state.processedEpoch, targetEpoch);
+                _getNextSegmentBoundary(rateQueue, currentRate, processedEpoch, targetEpoch);
 
             // if current segment rate is zero, advance settlement to end of this segment and continue
             if (segmentRate == 0) {
                 rail.settledUpTo = segmentEndBoundary;
-                state.processedEpoch = segmentEndBoundary;
+                processedEpoch = segmentEndBoundary;
 
                 // Remove the processed rate change from the queue if it exists AND we have processed it entirely
                 if (!rateQueue.isEmpty() && segmentEndBoundary >= rateQueue.peek().untilEpoch) {
@@ -1352,46 +1348,45 @@ contract FilecoinPayV1 is ReentrancyGuard {
                 continue;
             }
 
-            // Settle the current segment with potentially validated outcomes
-            (
-                uint256 segmentSettledAmount,
-                uint256 segmentNetPayeeAmount,
-                uint256 segmentOperatorCommission,
-                uint256 segmentNetworkFee,
-                string memory validationNote
-            ) = _settleSegment(railId, state.processedEpoch, segmentEndBoundary, segmentRate, skipValidation);
+            // Settle the current segment with gross amounts (no fee calculation)
+            (uint256 segmentGrossSettled,, string memory validationNote) =
+                _settleSegmentGross(railId, processedEpoch, segmentEndBoundary, segmentRate, skipValidation);
 
-            // If validator returned no progress, exit early without updating state
-            if (rail.settledUpTo <= state.processedEpoch) {
-                return (
-                    state.totalSettledAmount,
-                    state.totalNetPayeeAmount,
-                    state.totalOperatorCommission,
-                    state.totalNetworkFee,
-                    validationNote
-                );
+            // If validator returned no progress, exit early
+            if (rail.settledUpTo <= processedEpoch) {
+                // Apply fees to whatever we've settled so far
+                if (totalGrossSettled > 0) {
+                    (totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee) = calculateAndPayFees(
+                        totalGrossSettled, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps
+                    );
+                    payee.funds += totalNetPayeeAmount;
+                } else {
+                    totalNetPayeeAmount = 0;
+                    totalOperatorCommission = 0;
+                    totalNetworkFee = 0;
+                }
+                totalSettledAmount = totalGrossSettled;
+                return
+                    (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, validationNote);
             }
 
-            // Add the settled amounts to our running totals
-            state.totalSettledAmount += segmentSettledAmount;
-            state.totalNetPayeeAmount += segmentNetPayeeAmount;
-            state.totalNetworkFee += segmentNetworkFee;
-            state.totalOperatorCommission += segmentOperatorCommission;
+            // Add the gross settled amount to our running total
+            totalGrossSettled += segmentGrossSettled;
+            note = validationNote;
 
             // If validator partially settled the segment, exit early
             if (rail.settledUpTo < segmentEndBoundary) {
-                return (
-                    state.totalSettledAmount,
-                    state.totalNetPayeeAmount,
-                    state.totalOperatorCommission,
-                    state.totalNetworkFee,
-                    validationNote
-                );
+                // Apply fees to whatever we've settled so far
+                (totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee) =
+                    calculateAndPayFees(totalGrossSettled, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps);
+                payee.funds += totalNetPayeeAmount;
+                totalSettledAmount = totalGrossSettled;
+                return
+                    (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, validationNote);
             }
 
             // Successfully settled full segment, update tracking values
-            state.processedEpoch = rail.settledUpTo;
-            state.note = validationNote;
+            processedEpoch = rail.settledUpTo;
 
             // Remove the processed rate change from the queue
             if (!rateQueue.isEmpty() && segmentEndBoundary >= rateQueue.peek().untilEpoch) {
@@ -1399,14 +1394,19 @@ contract FilecoinPayV1 is ReentrancyGuard {
             }
         }
 
-        // We've successfully settled up to the target epoch
-        return (
-            state.totalSettledAmount,
-            state.totalNetPayeeAmount,
-            state.totalOperatorCommission,
-            state.totalNetworkFee,
-            state.note
-        );
+        // We've successfully settled up to the target epoch - apply fees once
+        if (totalGrossSettled > 0) {
+            (totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee) =
+                calculateAndPayFees(totalGrossSettled, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps);
+            payee.funds += totalNetPayeeAmount;
+        } else {
+            totalNetPayeeAmount = 0;
+            totalOperatorCommission = 0;
+            totalNetworkFee = 0;
+        }
+        totalSettledAmount = totalGrossSettled;
+
+        return (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, note);
     }
 
     function _getNextSegmentBoundary(
@@ -1435,36 +1435,32 @@ contract FilecoinPayV1 is ReentrancyGuard {
         }
     }
 
-    function _settleSegment(uint256 railId, uint256 epochStart, uint256 epochEnd, uint256 rate, bool skipValidation)
-        internal
-        returns (
-            uint256 settledAmount,
-            uint256 netPayeeAmount,
-            uint256 operatorCommission,
-            uint256 networkFee,
-            string memory note
-        )
-    {
+    function _settleSegmentGross(
+        uint256 railId,
+        uint256 epochStart,
+        uint256 epochEnd,
+        uint256 rate,
+        bool skipValidation
+    ) internal returns (uint256 grossSettledAmount, uint256 settledUntilEpoch, string memory note) {
         Rail storage rail = rails[railId];
         Account storage payer = accounts[rail.token][rail.from];
-        Account storage payee = accounts[rail.token][rail.to];
 
         if (rate == 0) {
             rail.settledUpTo = epochEnd;
-            return (0, 0, 0, 0, "Zero rate payment rail");
+            return (0, epochEnd, "Zero rate payment rail");
         }
 
         // Calculate the default settlement values (without validation)
         uint256 duration = epochEnd - epochStart;
-        settledAmount = rate * duration;
-        uint256 settledUntilEpoch = epochEnd;
+        grossSettledAmount = rate * duration;
+        settledUntilEpoch = epochEnd;
         note = "";
 
         // If this rail has an validator and we're not skipping validation, let it decide on the final settlement amount
         if (rail.validator != address(0) && !skipValidation) {
             IValidator validator = IValidator(rail.validator);
             IValidator.ValidationResult memory result =
-                validator.validatePayment(railId, settledAmount, epochStart, epochEnd, rate);
+                validator.validatePayment(railId, grossSettledAmount, epochStart, epochEnd, rate);
 
             // Ensure validator doesn't settle beyond our segment's end boundary
             require(
@@ -1477,7 +1473,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
             );
 
             settledUntilEpoch = result.settleUpto;
-            settledAmount = result.modifiedAmount;
+            grossSettledAmount = result.modifiedAmount;
             note = result.note;
 
             // Ensure validator doesn't allow more payment than the maximum possible
@@ -1492,27 +1488,20 @@ contract FilecoinPayV1 is ReentrancyGuard {
 
         // Verify payer has sufficient funds for the settlement
         require(
-            payer.funds >= settledAmount,
-            Errors.InsufficientFundsForSettlement(rail.token, rail.from, settledAmount, payer.funds)
+            payer.funds >= grossSettledAmount,
+            Errors.InsufficientFundsForSettlement(rail.token, rail.from, grossSettledAmount, payer.funds)
         );
 
         // Verify payer has sufficient lockup for the settlement
         require(
-            payer.lockupCurrent >= settledAmount,
-            Errors.InsufficientLockupForSettlement(rail.token, rail.from, payer.lockupCurrent, settledAmount)
+            payer.lockupCurrent >= grossSettledAmount,
+            Errors.InsufficientLockupForSettlement(rail.token, rail.from, payer.lockupCurrent, grossSettledAmount)
         );
         uint256 actualSettledDuration = settledUntilEpoch - epochStart;
         uint256 requiredLockup = rate * actualSettledDuration;
 
         // Transfer funds from payer (always pays full settled amount)
-        payer.funds -= settledAmount;
-
-        // Calculate fees, pay operator commission and track platform fees
-        (netPayeeAmount, operatorCommission, networkFee) =
-            calculateAndPayFees(settledAmount, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps);
-
-        // Credit payee
-        payee.funds += netPayeeAmount;
+        payer.funds -= grossSettledAmount;
 
         // Reduce lockup based on actual settled duration, not requested duration
         // so that if the validator only settles for a partial duration, we only reduce the client lockup by the actual locked amount
@@ -1527,6 +1516,30 @@ contract FilecoinPayV1 is ReentrancyGuard {
             payer.lockupCurrent <= payer.funds,
             Errors.LockupExceedsFundsInvariant(rail.token, rail.from, payer.lockupCurrent, payer.funds)
         );
+    }
+
+    function _settleSegment(uint256 railId, uint256 epochStart, uint256 epochEnd, uint256 rate, bool skipValidation)
+        internal
+        returns (
+            uint256 settledAmount,
+            uint256 netPayeeAmount,
+            uint256 operatorCommission,
+            uint256 networkFee,
+            string memory note
+        )
+    {
+        Rail storage rail = rails[railId];
+        Account storage payee = accounts[rail.token][rail.to];
+
+        // Use the gross settlement helper
+        (settledAmount,, note) = _settleSegmentGross(railId, epochStart, epochEnd, rate, skipValidation);
+
+        // Calculate fees, pay operator commission and track platform fees
+        (netPayeeAmount, operatorCommission, networkFee) =
+            calculateAndPayFees(settledAmount, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps);
+
+        // Credit payee
+        payee.funds += netPayeeAmount;
     }
 
     function isAccountLockupFullySettled(Account storage account) internal view returns (bool) {
