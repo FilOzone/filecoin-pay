@@ -3,7 +3,7 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockValidator} from "./mocks/MockValidator.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
@@ -15,7 +15,7 @@ import {Errors} from "../src/Errors.sol";
 contract RailSettlementTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;
     RailSettlementHelpers settlementHelper;
-    Payments payments;
+    FilecoinPayV1 payments;
     MockERC20 token;
 
     uint256 constant DEPOSIT_AMOUNT = 200 ether;
@@ -379,11 +379,11 @@ contract RailSettlementTest is Test, BaseTestHelper {
         payments.terminateRail(railId);
 
         // Verify rail was terminated - check endEpoch is set
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         assertTrue(rail.endEpoch > 0, "Rail should be terminated");
 
         // Verify endEpoch calculation: should be the lockupLastSettledAt (current block) + lockupPeriod
-        Payments.Account memory account = helper.getAccountData(USER1);
+        FilecoinPayV1.Account memory account = helper.getAccountData(USER1);
         assertEq(
             rail.endEpoch,
             account.lockupLastSettledAt + rail.lockupPeriod,
@@ -394,8 +394,8 @@ contract RailSettlementTest is Test, BaseTestHelper {
         helper.advanceBlocks(10);
 
         // Get balances before final settlement
-        Payments.Account memory userBefore = helper.getAccountData(USER1);
-        Payments.Account memory recipientBefore = helper.getAccountData(USER2);
+        FilecoinPayV1.Account memory userBefore = helper.getAccountData(USER1);
+        FilecoinPayV1.Account memory recipientBefore = helper.getAccountData(USER2);
 
         // Final settlement after termination
         vm.prank(USER1);
@@ -421,8 +421,8 @@ contract RailSettlementTest is Test, BaseTestHelper {
         assertEq(settledUpto, rail.endEpoch, "Final settled up to incorrect");
 
         // Get balances after settlement
-        Payments.Account memory userAfter = helper.getAccountData(USER1);
-        Payments.Account memory recipientAfter = helper.getAccountData(USER2);
+        FilecoinPayV1.Account memory userAfter = helper.getAccountData(USER1);
+        FilecoinPayV1.Account memory recipientAfter = helper.getAccountData(USER2);
 
         assertEq(
             userBefore.funds - userAfter.funds, expectedAmount2, "User funds not reduced correctly in final settlement"
@@ -614,7 +614,7 @@ contract RailSettlementTest is Test, BaseTestHelper {
         assertEq(payments.getRateChangeQueueSize(railId), 0, "queue should stay empty");
 
         // settledUpTo must equal the block where modification occurred
-        Payments.RailView memory rv = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rv = payments.getRail(railId);
         assertEq(rv.settledUpTo, beforeBlock, "settledUpTo should equal current block");
     }
 
@@ -664,10 +664,10 @@ contract RailSettlementTest is Test, BaseTestHelper {
         helper.advanceBlocks(elapsedBlocks);
 
         // --- Balances Before ---
-        Payments.Account memory payerBefore = helper.getAccountData(USER1);
-        Payments.Account memory payeeBefore = helper.getAccountData(USER2);
-        Payments.Account memory operatorBefore = helper.getAccountData(OPERATOR);
-        Payments.Account memory serviceFeeRecipientBefore = helper.getAccountData(SERVICE_FEE_RECIPIENT);
+        FilecoinPayV1.Account memory payerBefore = helper.getAccountData(USER1);
+        FilecoinPayV1.Account memory payeeBefore = helper.getAccountData(USER2);
+        FilecoinPayV1.Account memory operatorBefore = helper.getAccountData(OPERATOR);
+        FilecoinPayV1.Account memory serviceFeeRecipientBefore = helper.getAccountData(SERVICE_FEE_RECIPIENT);
 
         // --- Expected Calculations ---
         uint256 expectedSettledAmount = rate * elapsedBlocks;
@@ -698,10 +698,10 @@ contract RailSettlementTest is Test, BaseTestHelper {
         assertEq(settledUpto, block.number, "Returned settledUpto incorrect");
 
         // 2. Balances after settlement
-        Payments.Account memory payerAfter = helper.getAccountData(USER1);
-        Payments.Account memory payeeAfter = helper.getAccountData(USER2);
-        Payments.Account memory operatorAfter = helper.getAccountData(OPERATOR);
-        Payments.Account memory serviceFeeRecipientAfter = helper.getAccountData(SERVICE_FEE_RECIPIENT);
+        FilecoinPayV1.Account memory payerAfter = helper.getAccountData(USER1);
+        FilecoinPayV1.Account memory payeeAfter = helper.getAccountData(USER2);
+        FilecoinPayV1.Account memory operatorAfter = helper.getAccountData(OPERATOR);
+        FilecoinPayV1.Account memory serviceFeeRecipientAfter = helper.getAccountData(SERVICE_FEE_RECIPIENT);
 
         assertEq(payerAfter.funds, payerBefore.funds - expectedSettledAmount, "Payer funds mismatch");
         assertEq(payeeAfter.funds, payeeBefore.funds + expectedNetPayeeAmount, "Payee funds mismatch");
@@ -913,7 +913,7 @@ contract RailSettlementTest is Test, BaseTestHelper {
         payments.terminateRail(railId);
 
         // Get the rail's end epoch
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         uint256 endEpoch = rail.endEpoch;
 
         // Advance blocks to reach the end epoch

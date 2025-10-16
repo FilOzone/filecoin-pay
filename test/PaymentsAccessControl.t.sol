@@ -2,13 +2,13 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
 import {Errors} from "../src/Errors.sol";
 
 contract AccessControlTest is Test, BaseTestHelper {
-    Payments payments;
+    FilecoinPayV1 payments;
     PaymentsTestHelpers helper;
 
     uint256 constant DEPOSIT_AMOUNT = 100 ether;
@@ -164,7 +164,7 @@ contract AccessControlTest is Test, BaseTestHelper {
         vm.stopPrank();
 
         // Verify the rail was terminated by checking its end epoch is set
-        Payments.RailView memory railView = payments.getRail(railId);
+        FilecoinPayV1.RailView memory railView = payments.getRail(railId);
         assertTrue(railView.endEpoch > 0, "Rail was not terminated properly");
     }
 }

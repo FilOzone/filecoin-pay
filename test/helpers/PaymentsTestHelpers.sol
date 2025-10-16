@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../../src/Payments.sol";
+import {FilecoinPayV1} from "../../src/FilecoinPayV1.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {BaseTestHelper} from "./BaseTestHelper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -16,14 +16,14 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
     uint256 public constant DEPOSIT_AMOUNT = 100 ether;
     uint256 internal constant MAX_LOCKUP_PERIOD = 100;
 
-    Payments public payments;
+    FilecoinPayV1 public payments;
     MockERC20 public testToken;
     IERC20 private constant NATIVE_TOKEN = IERC20(address(0));
 
     // Standard test environment setup with common addresses and token
     function setupStandardTestEnvironment() public {
         vm.startPrank(OWNER);
-        payments = new Payments();
+        payments = new FilecoinPayV1();
         vm.stopPrank();
 
         // Setup test token and assign to common users
@@ -95,7 +95,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Capture pre-deposit balances and state
         uint256 fromBalanceBefore = _balanceOf(from, false);
         uint256 paymentsBalanceBefore = _balanceOf(address(payments), false);
-        Payments.Account memory toAccountBefore = _getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountBefore = _getAccountData(to, false);
 
         // get signature for permit
         (uint8 v, bytes32 r, bytes32 s) = getPermitSignature(fromPrivateKey, from, address(payments), amount, deadline);
@@ -110,7 +110,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Capture post-deposit balances and state
         uint256 fromBalanceAfter = _balanceOf(from, false);
         uint256 paymentsBalanceAfter = _balanceOf(address(payments), false);
-        Payments.Account memory toAccountAfter = _getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountAfter = _getAccountData(to, false);
 
         // Asserts / Checks
         _assertDepositBalances(
@@ -129,8 +129,8 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         uint256 fromBalanceAfter,
         uint256 paymentsBalanceBefore,
         uint256 paymentsBalanceAfter,
-        Payments.Account memory toAccountBefore,
-        Payments.Account memory toAccountAfter,
+        FilecoinPayV1.Account memory toAccountBefore,
+        FilecoinPayV1.Account memory toAccountAfter,
         uint256 amount
     ) public pure {
         assertEq(fromBalanceAfter, fromBalanceBefore - amount, "Sender's balance not reduced correctly");
@@ -147,20 +147,20 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         );
     }
 
-    function getAccountData(address user) public view returns (Payments.Account memory) {
+    function getAccountData(address user) public view returns (FilecoinPayV1.Account memory) {
         return _getAccountData(user, false);
     }
 
-    function getNativeAccountData(address user) public view returns (Payments.Account memory) {
+    function getNativeAccountData(address user) public view returns (FilecoinPayV1.Account memory) {
         return _getAccountData(user, true);
     }
 
-    function _getAccountData(address user, bool useNativeToken) public view returns (Payments.Account memory) {
+    function _getAccountData(address user, bool useNativeToken) public view returns (FilecoinPayV1.Account memory) {
         IERC20 token = useNativeToken ? NATIVE_TOKEN : testToken;
         (uint256 funds, uint256 lockupCurrent, uint256 lockupRate, uint256 lockupLastSettledAt) =
             payments.accounts(token, user);
 
-        return Payments.Account({
+        return FilecoinPayV1.Account({
             funds: funds,
             lockupCurrent: lockupCurrent,
             lockupRate: lockupRate,
@@ -180,7 +180,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Capture pre-deposit balances
         uint256 fromBalanceBefore = _balanceOf(from, useNativeToken);
         uint256 paymentsBalanceBefore = _balanceOf(address(payments), useNativeToken);
-        Payments.Account memory toAccountBefore = _getAccountData(to, useNativeToken);
+        FilecoinPayV1.Account memory toAccountBefore = _getAccountData(to, useNativeToken);
 
         // Make the deposit
         vm.startPrank(from);
@@ -198,7 +198,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Verify token balances
         uint256 fromBalanceAfter = _balanceOf(from, useNativeToken);
         uint256 paymentsBalanceAfter = _balanceOf(address(payments), useNativeToken);
-        Payments.Account memory toAccountAfter = _getAccountData(to, useNativeToken);
+        FilecoinPayV1.Account memory toAccountAfter = _getAccountData(to, useNativeToken);
 
         // Verify balances
         assertEq(fromBalanceAfter, fromBalanceBefore - amount, "Sender's balance not reduced correctly");
@@ -322,7 +322,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         vm.stopPrank();
 
         // Verify rail was created with the correct parameters
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         assertEq(address(rail.token), address(testToken), "Rail token address mismatch");
         assertEq(rail.from, from, "Rail sender address mismatch");
         assertEq(rail.to, to, "Rail recipient address mismatch");
@@ -372,8 +372,8 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
             payments.operatorApprovals(testToken, from, railOperator);
 
         // Get rail parameters before modifications to accurately calculate expected usage changes
-        Payments.RailView memory railBefore;
-        try payments.getRail(railId) returns (Payments.RailView memory railData) {
+        FilecoinPayV1.RailView memory railBefore;
+        try payments.getRail(railId) returns (FilecoinPayV1.RailView memory railData) {
             railBefore = railData;
         } catch {
             // If this is a new rail, all values will be zero
@@ -389,7 +389,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         vm.stopPrank();
 
         // Verify rail parameters were set correctly
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         assertEq(rail.paymentRate, paymentRate, "Rail payment rate mismatch");
         assertEq(rail.lockupPeriod, lockupPeriod, "Rail lockup period mismatch");
         assertEq(rail.lockupFixed, lockupFixed, "Rail fixed lockup mismatch");
@@ -519,7 +519,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         uint256 expectedRate,
         uint256 expectedLastSettled
     ) public view {
-        Payments.Account memory account = getAccountData(user);
+        FilecoinPayV1.Account memory account = getAccountData(user);
         assertEq(account.funds, expectedFunds, "Account funds incorrect");
         assertEq(account.lockupCurrent, expectedLockup, "Account lockup incorrect");
         assertEq(account.lockupRate, expectedRate, "Account lockup rate incorrect");
@@ -570,14 +570,14 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
     }
 
     function executeOneTimePayment(uint256 railId, address operatorAddress, uint256 oneTimeAmount) public {
-        Payments.RailView memory railBefore = payments.getRail(railId);
+        FilecoinPayV1.RailView memory railBefore = payments.getRail(railId);
         address railClient = railBefore.from;
         address railRecipient = railBefore.to;
 
         // Get initial balances
-        Payments.Account memory clientBefore = getAccountData(railClient);
-        Payments.Account memory recipientBefore = getAccountData(railRecipient);
-        Payments.Account memory operatorBefore = getAccountData(operatorAddress);
+        FilecoinPayV1.Account memory clientBefore = getAccountData(railClient);
+        FilecoinPayV1.Account memory recipientBefore = getAccountData(railRecipient);
+        FilecoinPayV1.Account memory operatorBefore = getAccountData(operatorAddress);
 
         // Get operator allowance and usage before payment
         (,, uint256 lockupAllowanceBefore,, uint256 lockupUsageBefore,) =
@@ -589,9 +589,9 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         vm.stopPrank();
 
         // Verify balance changes
-        Payments.Account memory clientAfter = getAccountData(railClient);
-        Payments.Account memory recipientAfter = getAccountData(railRecipient);
-        Payments.Account memory operatorAfter = getAccountData(operatorAddress);
+        FilecoinPayV1.Account memory clientAfter = getAccountData(railClient);
+        FilecoinPayV1.Account memory recipientAfter = getAccountData(railRecipient);
+        FilecoinPayV1.Account memory operatorAfter = getAccountData(operatorAddress);
 
         assertEq(
             clientAfter.funds,
@@ -619,7 +619,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         );
 
         // Verify fixed lockup was reduced
-        Payments.RailView memory railAfter = payments.getRail(railId);
+        FilecoinPayV1.RailView memory railAfter = payments.getRail(railId);
         assertEq(
             railAfter.lockupFixed,
             railBefore.lockupFixed - oneTimeAmount,
@@ -732,7 +732,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Capture pre-deposit balances and state
         uint256 fromBalanceBefore = _balanceOf(from, false);
         uint256 paymentsBalanceBefore = _balanceOf(address(payments), false);
-        Payments.Account memory toAccountBefore = _getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountBefore = _getAccountData(to, false);
 
         // get signature for permit
         (uint8 v, bytes32 r, bytes32 s) = getPermitSignature(fromPrivateKey, from, address(payments), amount, deadline);
@@ -749,7 +749,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Capture post-deposit balances and state
         uint256 fromBalanceAfter = _balanceOf(from, false);
         uint256 paymentsBalanceAfter = _balanceOf(address(payments), false);
-        Payments.Account memory toAccountAfter = _getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountAfter = _getAccountData(to, false);
 
         // Asserts / Checks
         _assertDepositBalances(
@@ -785,7 +785,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Capture pre-deposit balances and state
         uint256 fromBalanceBefore = _balanceOf(from, false);
         uint256 paymentsBalanceBefore = _balanceOf(address(payments), false);
-        Payments.Account memory toAccountBefore = _getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountBefore = _getAccountData(to, false);
 
         vm.startPrank(from);
 
@@ -799,7 +799,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Capture post-deposit balances and state
         uint256 fromBalanceAfter = _balanceOf(from, false);
         uint256 paymentsBalanceAfter = _balanceOf(address(payments), false);
-        Payments.Account memory toAccountAfter = _getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountAfter = _getAccountData(to, false);
 
         // Asserts / Checks
         _assertDepositBalances(
@@ -896,7 +896,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Pre-state capture
         uint256 fromBalanceBefore = _balanceOf(from, false);
         uint256 paymentsBalanceBefore = _balanceOf(address(payments), false);
-        Payments.Account memory toAccountBefore = _getAccountData(to, false);
+        FilecoinPayV1.Account memory toAccountBefore = _getAccountData(to, false);
 
         // Build signature
         (uint8 v, bytes32 r, bytes32 s) = getReceiveWithAuthorizationSignature(
@@ -934,7 +934,7 @@ contract PaymentsTestHelpers is Test, BaseTestHelper {
         // Post-state capture
         uint256 fromBalanceAfter = _balanceOf(from, false);
         uint256 paymentsBalanceAfter = _balanceOf(address(payments), false);
-        Payments.Account memory toAccountAfter = _getAccountData(from, false);
+        FilecoinPayV1.Account memory toAccountAfter = _getAccountData(from, false);
 
         // Assertions
         _assertDepositBalances(

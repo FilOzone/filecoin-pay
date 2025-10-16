@@ -42,8 +42,8 @@ interface IValidator {
     function railTerminated(uint256 railId, address terminator, uint256 endEpoch) external;
 }
 
-// @title Payments contract.
-contract Payments is ReentrancyGuard {
+// @title Filecoin Pay V1 contract.
+contract FilecoinPayV1 is ReentrancyGuard {
     using Dutch for uint256;
     using SafeERC20 for IERC20;
     using RateChangeQueue for RateChangeQueue.Queue;

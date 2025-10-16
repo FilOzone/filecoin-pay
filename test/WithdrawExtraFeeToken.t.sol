@@ -3,12 +3,12 @@ pragma solidity ^0.8.27;
 
 import {ExtraFeeToken} from "./mocks/ExtraFeeToken.sol";
 import {Errors} from "../src/Errors.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract WithdrawExtraFeeTokenTest is Test {
     function testWithdrawFeeToken() public {
-        Payments payments = new Payments();
+        FilecoinPayV1 payments = new FilecoinPayV1();
         uint256 transferFee = 10 ** 18;
         ExtraFeeToken feeToken = new ExtraFeeToken(transferFee);
         address user1 = vm.addr(0x1111);
@@ -68,7 +68,7 @@ contract WithdrawExtraFeeTokenTest is Test {
     }
 
     function testWithdrawLockup() public {
-        Payments payments = new Payments();
+        FilecoinPayV1 payments = new FilecoinPayV1();
         uint256 transferFee = 10 ** 18;
         ExtraFeeToken feeToken = new ExtraFeeToken(transferFee);
         address user1 = vm.addr(0x1111);

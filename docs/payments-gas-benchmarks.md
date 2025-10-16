@@ -1,4 +1,4 @@
-# Payments Gas Benchmarks
+# FilecoinPayV1 Gas Benchmarks
 
 This file contains gas cost benchmarks for the payments contract.
 
@@ -6,7 +6,7 @@ This file contains gas cost benchmarks for the payments contract.
 
 ## Calibration Network Gas Costs
 
-Below are the actual gas usage results for each payments contract operation, taken directly from transaction receipts on the Filecoin Calibration testnet after interacting with the Payments contract.
+Below are the actual gas usage results for each FilecoinPayV1 contract operation, taken directly from transaction receipts on the Filecoin Calibration testnet after interacting with the FilecoinPayV1 contract.
 
 - **Gas Used:** The total gas consumed by the transaction (from the receipt)
 - **Base Fee (attoFIL):** The base fee per gas unit at the time of the transaction

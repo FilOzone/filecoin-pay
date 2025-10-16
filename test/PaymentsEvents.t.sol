@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
 import {BaseTestHelper} from "./helpers/BaseTestHelper.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -12,7 +12,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
  * @dev Test contract for verifying all events emitted by the Payments contract
  */
 contract PaymentsEventsTest is Test, BaseTestHelper {
-    Payments public payments;
+    FilecoinPayV1 public payments;
     PaymentsTestHelpers public helper;
     MockERC20 public testToken;
 
@@ -64,8 +64,8 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // Expect the event to be emitted
         // lockupCurrent = 25 ether ( from modifyRailPayment ) + 5 * 5 ether ( elapsedTime * lockupRate)
         vm.expectEmit(true, true, true, true);
-        emit Payments.AccountLockupSettled(testToken, USER1, 50 ether, 5 ether, block.number);
-        emit Payments.RailLockupModified(railId, 5, 10, 0, 0);
+        emit FilecoinPayV1.AccountLockupSettled(testToken, USER1, 50 ether, 5 ether, block.number);
+        emit FilecoinPayV1.RailLockupModified(railId, 5, 10, 0, 0);
 
         payments.modifyRailLockup(railId, 10, 0 ether);
 
@@ -80,7 +80,9 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, true, true);
-        emit Payments.OperatorApprovalUpdated(testToken, USER1, OPERATOR2, true, 5 ether, 50 ether, MAX_LOCKUP_PERIOD);
+        emit FilecoinPayV1.OperatorApprovalUpdated(
+            testToken, USER1, OPERATOR2, true, 5 ether, 50 ether, MAX_LOCKUP_PERIOD
+        );
 
         // Set operator approval
         payments.setOperatorApproval(
@@ -103,7 +105,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, true, true);
-        emit Payments.RailCreated(
+        emit FilecoinPayV1.RailCreated(
             1, // railId (assuming this is the first rail)
             USER1, // payer
             USER2, // payee
@@ -138,7 +140,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, false, false, true);
-        emit Payments.RailLockupModified(railId, 0, 10, 0, 10 ether);
+        emit FilecoinPayV1.RailLockupModified(railId, 0, 10, 0, 10 ether);
 
         // Modify rail lockup
         payments.modifyRailLockup(railId, 10, 10 ether);
@@ -159,7 +161,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         payments.modifyRailLockup(railId, 10, 10 ether);
 
         // calcualate expected values
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         uint256 oneTimeAmount = 5 ether;
         uint256 expectedNetworkFee =
             oneTimeAmount * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
@@ -169,7 +171,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // expect the event to be emitted
         vm.expectEmit(true, false, false, true);
-        emit Payments.RailOneTimePaymentProcessed(
+        emit FilecoinPayV1.RailOneTimePaymentProcessed(
             railId, expectedNetPayeeAmount, expectedOperatorCommission, expectedNetworkFee
         );
 
@@ -191,7 +193,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, false, false, true);
-        emit Payments.RailRateModified(railId, 0, 1 ether);
+        emit FilecoinPayV1.RailRateModified(railId, 0, 1 ether);
 
         // Modify rail payment rate
         payments.modifyRailPayment(railId, 1 ether, 0);
@@ -217,7 +219,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         vm.startPrank(USER1);
 
         // expected values
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         uint256 totalSettledAmount = 5 * rail.paymentRate;
         uint256 totalNetworkFee =
             5 * rail.paymentRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR();
@@ -227,7 +229,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, false, true);
-        emit Payments.RailSettled(
+        emit FilecoinPayV1.RailSettled(
             railId, totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, block.number
         );
 
@@ -252,11 +254,11 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         vm.startPrank(USER1);
 
         // expected end epoch
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         uint256 expectedEndEpoch = block.number + rail.lockupPeriod;
         // Expect the event to be emitted
         vm.expectEmit(true, true, false, true);
-        emit Payments.RailTerminated(railId, USER1, expectedEndEpoch);
+        emit FilecoinPayV1.RailTerminated(railId, USER1, expectedEndEpoch);
 
         // Terminate rail
         payments.terminateRail(railId);
@@ -282,7 +284,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         vm.stopPrank();
 
         // Get the rail to check its end epoch
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
 
         // Advance blocks past the end epoch
         helper.advanceBlocks(rail.lockupPeriod + 1);
@@ -291,7 +293,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, false, false, true);
-        emit Payments.RailFinalized(railId);
+        emit FilecoinPayV1.RailFinalized(railId);
 
         // Settle terminated rail to trigger finalization
         payments.settleTerminatedRailWithoutValidation(railId);
@@ -311,8 +313,8 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
         // Expect the event to be emitted
         // Only check the first three indexed parameters
         vm.expectEmit(true, true, true, true);
-        emit Payments.AccountLockupSettled(testToken, USER2, 0, 0, block.number);
-        emit Payments.DepositRecorded(testToken, USER1, USER2, 10 ether); // Amount not checked
+        emit FilecoinPayV1.AccountLockupSettled(testToken, USER2, 0, 0, block.number);
+        emit FilecoinPayV1.DepositRecorded(testToken, USER1, USER2, 10 ether); // Amount not checked
 
         // Deposit tokens
         payments.deposit(testToken, USER2, 10 ether);
@@ -338,8 +340,8 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, false, true);
-        emit Payments.AccountLockupSettled(testToken, signer, 0, 0, block.number);
-        emit Payments.DepositRecorded(testToken, signer, signer, depositAmount);
+        emit FilecoinPayV1.AccountLockupSettled(testToken, signer, 0, 0, block.number);
+        emit FilecoinPayV1.DepositRecorded(testToken, signer, signer, depositAmount);
 
         // Deposit with permit
         payments.depositWithPermit(testToken, signer, depositAmount, deadline, v, r, s);
@@ -358,7 +360,7 @@ contract PaymentsEventsTest is Test, BaseTestHelper {
 
         // Expect the event to be emitted
         vm.expectEmit(true, true, true, true);
-        emit Payments.WithdrawRecorded(testToken, USER2, USER2, 5 ether);
+        emit FilecoinPayV1.WithdrawRecorded(testToken, USER2, USER2, 5 ether);
 
         // Withdraw tokens
         payments.withdraw(testToken, 5 ether);

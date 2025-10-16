@@ -2,20 +2,20 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../../src/Payments.sol";
+import {FilecoinPayV1} from "../../src/FilecoinPayV1.sol";
 import {MockValidator} from "../mocks/MockValidator.sol";
 import {PaymentsTestHelpers} from "./PaymentsTestHelpers.sol";
 import {console} from "forge-std/console.sol";
 
 contract RailSettlementHelpers is Test {
     PaymentsTestHelpers public baseHelper;
-    Payments public payments;
+    FilecoinPayV1 public payments;
 
     constructor() {
         baseHelper = new PaymentsTestHelpers();
     }
 
-    function initialize(Payments _payments, PaymentsTestHelpers _baseHelper) public {
+    function initialize(FilecoinPayV1 _payments, PaymentsTestHelpers _baseHelper) public {
         payments = _payments;
         baseHelper = _baseHelper;
     }
@@ -120,13 +120,13 @@ contract RailSettlementHelpers is Test {
     {
         console.log("settleRailAndVerify");
         // Get the rail details to identify payer and payee
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         address payer = rail.from;
         address payee = rail.to;
 
         // Get balances before settlement
-        Payments.Account memory payerAccountBefore = baseHelper.getAccountData(payer);
-        Payments.Account memory payeeAccountBefore = baseHelper.getAccountData(payee);
+        FilecoinPayV1.Account memory payerAccountBefore = baseHelper.getAccountData(payer);
+        FilecoinPayV1.Account memory payeeAccountBefore = baseHelper.getAccountData(payee);
 
         console.log("payerFundsBefore", payerAccountBefore.funds);
         console.log("payerLockupBefore", payerAccountBefore.lockupCurrent);
@@ -157,8 +157,8 @@ contract RailSettlementHelpers is Test {
         assertEq(settledUpto, expectedUpto, "Settled upto doesn't match expected");
 
         // Verify payer and payee balance changes
-        Payments.Account memory payerAccountAfter = baseHelper.getAccountData(payer);
-        Payments.Account memory payeeAccountAfter = baseHelper.getAccountData(payee);
+        FilecoinPayV1.Account memory payerAccountAfter = baseHelper.getAccountData(payer);
+        FilecoinPayV1.Account memory payeeAccountAfter = baseHelper.getAccountData(payee);
         console.log("payerFundsAfter", payerAccountAfter.funds);
         console.log("payeeFundsAfter", payeeAccountAfter.funds);
 
@@ -184,7 +184,7 @@ contract RailSettlementHelpers is Test {
         returns (SettlementResult memory result)
     {
         // Get rail details to extract client and operator addresses
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         address client = rail.from;
         address operator = rail.operator;
 
@@ -206,14 +206,14 @@ contract RailSettlementHelpers is Test {
     }
 
     function modifyRailSettingsAndVerify(
-        Payments paymentsContract,
+        FilecoinPayV1 paymentsContract,
         uint256 railId,
         address operator,
         uint256 newRate,
         uint256 newLockupPeriod,
         uint256 newFixedLockup
     ) public {
-        Payments.RailView memory railBefore = paymentsContract.getRail(railId);
+        FilecoinPayV1.RailView memory railBefore = paymentsContract.getRail(railId);
         address client = railBefore.from;
 
         // Get operator allowance usage before modifications
@@ -242,7 +242,7 @@ contract RailSettlementHelpers is Test {
         vm.stopPrank();
 
         // Verify changes
-        Payments.RailView memory railAfter = paymentsContract.getRail(railId);
+        FilecoinPayV1.RailView memory railAfter = paymentsContract.getRail(railId);
 
         assertEq(railAfter.paymentRate, newRate, "Rail payment rate not updated correctly");
 

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.27;
 
 import {Test} from "forge-std/Test.sol";
-import {Payments} from "../src/Payments.sol";
+import {FilecoinPayV1} from "../src/FilecoinPayV1.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockValidator} from "./mocks/MockValidator.sol";
 import {PaymentsTestHelpers} from "./helpers/PaymentsTestHelpers.sol";
@@ -12,7 +12,7 @@ import {console} from "forge-std/console.sol";
 
 contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
     PaymentsTestHelpers helper;
-    Payments payments;
+    FilecoinPayV1 payments;
     MockERC20 token;
     MockValidator validator;
 
@@ -57,7 +57,7 @@ contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
         assertEq(validator.lastTerminator(), OPERATOR, "Incorrect terminator passed to validator");
 
         // Get the rail to verify the endEpoch matches
-        Payments.RailView memory rail = payments.getRail(railId);
+        FilecoinPayV1.RailView memory rail = payments.getRail(railId);
         assertEq(validator.lastEndEpoch(), rail.endEpoch, "Incorrect endEpoch passed to validator");
 
         helper.advanceBlocks(15);
@@ -65,7 +65,7 @@ contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
         vm.prank(USER1);
         payments.settleRail(railId, block.number);
 
-        Payments.Account memory payerFinal = helper.getAccountData(USER1);
+        FilecoinPayV1.Account memory payerFinal = helper.getAccountData(USER1);
 
         console.log("Lockup after:", payerFinal.lockupCurrent);
         console.log("Expected lockup:", expectedTotalLockup);
@@ -95,7 +95,7 @@ contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
         vm.prank(USER1);
         payments.settleRail(railId, block.number);
 
-        Payments.Account memory payerFinal = helper.getAccountData(USER1);
+        FilecoinPayV1.Account memory payerFinal = helper.getAccountData(USER1);
 
         console.log("Lockup after:", payerFinal.lockupCurrent);
         console.log("Expected lockup:", expectedTotalLockup);
@@ -130,7 +130,7 @@ contract PayeeFaultArbitrationBugTest is Test, BaseTestHelper {
         vm.prank(USER1);
         payments.settleRail(railId, block.number);
 
-        Payments.Account memory payerFinal = helper.getAccountData(USER1);
+        FilecoinPayV1.Account memory payerFinal = helper.getAccountData(USER1);
 
         console.log("Lockup after:", payerFinal.lockupCurrent);
         console.log("Expected lockup:", expectedTotalLockup);

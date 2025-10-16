@@ -7,6 +7,10 @@ All notable changes to this project will be documented in this file. The format 
 ### Added
 
 ### Changed
+- **BREAKING**: Contract name changed from `Payments` to `FilecoinPayV1` for versioning scheme ([#235](https://github.com/FilOzone/filecoin-pay/issues/235))
+  - File renamed from `src/Payments.sol` to `src/FilecoinPayV1.sol`
+  - All imports and references updated throughout codebase
+  - **Migration note**: Existing integrations must update contract references to `FilecoinPayV1`
 
 ### Fixed
 
