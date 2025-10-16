@@ -1354,20 +1354,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
 
             // If validator returned no progress, exit early
             if (rail.settledUpTo <= processedEpoch) {
-                // Apply fees to whatever we've settled so far
-                if (totalGrossSettled > 0) {
-                    (totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee) = calculateAndPayFees(
-                        totalGrossSettled, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps
-                    );
-                    payee.funds += totalNetPayeeAmount;
-                } else {
-                    totalNetPayeeAmount = 0;
-                    totalOperatorCommission = 0;
-                    totalNetworkFee = 0;
-                }
-                totalSettledAmount = totalGrossSettled;
-                return
-                    (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, validationNote);
+                break;
             }
 
             // Add the gross settled amount to our running total
@@ -1376,13 +1363,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
 
             // If validator partially settled the segment, exit early
             if (rail.settledUpTo < segmentEndBoundary) {
-                // Apply fees to whatever we've settled so far
-                (totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee) =
-                    calculateAndPayFees(totalGrossSettled, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps);
-                payee.funds += totalNetPayeeAmount;
-                totalSettledAmount = totalGrossSettled;
-                return
-                    (totalSettledAmount, totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee, validationNote);
+                break;
             }
 
             // Successfully settled full segment, update tracking values
@@ -1394,7 +1375,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
             }
         }
 
-        // We've successfully settled up to the target epoch - apply fees once
+        // Apply fees once after loop completion (whether normal completion or early exit)
         if (totalGrossSettled > 0) {
             (totalNetPayeeAmount, totalOperatorCommission, totalNetworkFee) =
                 calculateAndPayFees(totalGrossSettled, rail.token, rail.serviceFeeRecipient, rail.commissionRateBps);
