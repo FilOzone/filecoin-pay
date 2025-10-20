@@ -14,6 +14,10 @@ All notable changes to this project will be documented in this file. The format 
 
 This major version bump signifies that FilecoinPay v1.0.0 is the long-term stable version intended for production use on Filecoin Mainnet. This release is specifically prepared for `M4: Filecoin Service Liftoff`.
 
+### Deployed
+- **Calibration**: [TO_ADD_AFTER_DEPLOYMENT](https://calibration.filfox.info/en/address/)
+- **Mainnet**: [TO_ADD_AFTER_DEPLOYMENT](https://filfox.info/en/address/)
+
 ### Added
 - Performance optimization: Fee apportionment now occurs after settling all segments instead of per segment ([#248](https://github.com/FilOzone/filecoin-pay/pull/248))
   - Reduces redundant fee calculations
