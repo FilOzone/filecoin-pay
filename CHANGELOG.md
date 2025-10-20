@@ -7,12 +7,26 @@ All notable changes to this project will be documented in this file. The format 
 ### Added
 
 ### Changed
-- **BREAKING**: Contract name changed from `Payments` to `FilecoinPayV1` for versioning scheme ([#235](https://github.com/FilOzone/filecoin-pay/issues/235))
+
+### Fixed
+
+## [1.0.0] - M4: Filecoin Service Liftoff
+
+This major version bump signifies that FilecoinPay v1.0.0 is the long-term stable version intended for production use on Filecoin Mainnet. This release is specifically prepared for `M4: Filecoin Service Liftoff`.
+
+### Added
+- Performance optimization: Fee apportionment now occurs after settling all segments instead of per segment ([#248](https://github.com/FilOzone/filecoin-pay/pull/248))
+  - Reduces redundant fee calculations
+  - Simplifies bookkeeping in settlement operations
+  - Applies network fee ceiling once instead of per segment
+  - No breaking changes to public interfaces
+
+### Changed
+- **BREAKING**: Contract name changed from `Payments` to `FilecoinPayV1` for versioning scheme ([#235](https://github.com/FilOzone/filecoin-pay/issues/235), [#247](https://github.com/FilOzone/filecoin-pay/pull/247))
   - File renamed from `src/Payments.sol` to `src/FilecoinPayV1.sol`
   - All imports and references updated throughout codebase
   - **Migration note**: Existing integrations must update contract references to `FilecoinPayV1`
-
-### Fixed
+- Auction starting price updated to 0.0021 FIL ([#245](https://github.com/FilOzone/filecoin-pay/pull/245))
 
 ## [0.6.0] - Filecoin-Pay M3
 
