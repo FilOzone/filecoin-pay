@@ -16,6 +16,7 @@ This document exists as a supplement to the very thorough and useful README. The
     - [Validation](#validation)	
 - [Rail Termination](#rail-termination)
 - [Transaction Fees](#transaction-fees)
+	- [Native Token Auction](#native-token-auction)
 
 
 
@@ -268,7 +269,6 @@ The process of termination itself is very simple compared to its handling throug
 With this account settlement no longer flows funds into the `lockupCurrent` of the payer.  The streaming lockup is now used for exactly one `lockupPeriod` to move payments to the payee's account.  And with the end epoch set the rail will only payout exactly the streaming lockup for exactly the `lockupPeriod`.
 
 Rails become finalized when settled at or beyond their end epoch.  Finalization refunds the unused fixed lockup back to the payer and releases the `lockupUsage` from any remaining fixed lockup and all of the recently paid streaming lockup.
-
 
 
 # Transaction Fees
