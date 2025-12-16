@@ -287,4 +287,4 @@ Concretely fee tokens are deducted from the rail during settlement operations an
 
 When resetting price after a successful bid price is reset by 4x the clearing price.  With a halving time of 3.5 days this leads to on average an auction every week.
 
-One nuance of `burnForFees` is that it allows the bidding party to request to receive fewer tokens than are available.  This exists to handle edge cases where token transfers decrease balance by more than the specified amount.
+The auction does not require precise clearing. Bidders may request fewer tokens than the available balance and the remainder simply recycles into the next auction. Similarly, if the price decays between when a bidder signs their transaction and when it executes, any excess FIL paid is burned. These imprecisions favor the protocol rather than arbitrageurs.
