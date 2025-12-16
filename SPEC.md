@@ -281,7 +281,7 @@ The network fee is more difficult because the intention is the pay the L1 protoc
 
 ## Native Token Auction
 
-The native token auction is a descending price (Dutch) auction.  Prices are halved every 3.5 weeks.  Bidders can claim tokens via a function `burnForFees` that burns the provided native tokens in exchange for collecting the accumulated fee tokens.  `burnForFees` succeeds when the provided native tokens meet or exceed the existing auction price.
+The native token auction is a descending price (Dutch) auction.  Prices are halved every 3.5 days.  Bidders can claim tokens via a function `burnForFees` that burns the provided native tokens in exchange for collecting the accumulated fee tokens.  `burnForFees` succeeds when the provided native tokens meet or exceed the existing auction price.
 
 Concretely fee tokens are deducted from the rail during settlement operations and placed in the payment contract's own account, i.e. at `accounts[token][address(this)]`.  There is additionally a mapping in the top level contract state tracking the starting price and time for each token auction.  Starting parameters are set the first time a particular token is charged as a transaction fee during rail settlement, and again each time a bid successfully clears.
 
