@@ -35,7 +35,7 @@ deploy-calibnet: chmod-deploy
 
 .PHONY: deploy-devnet
 deploy-devnet: chmod-deploy
-	./tools/deploy.sh 31415926
+	./tools/deploy.sh 1414
 
 .PHONY: deploy-mainnet
 deploy-mainnet: chmod-deploy
