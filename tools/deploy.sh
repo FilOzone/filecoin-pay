@@ -3,7 +3,7 @@
 # Usage: ./tools/deploy.sh <chain_id>
 # Example: ./tools/deploy.sh 314159 (calibnet)
 #          ./tools/deploy.sh 314 (mainnet)
-#          ./tools/deploy.sh 1414 (devnet)
+#          ./tools/deploy.sh 31415926 (devnet)
 #
 if [ -f ".env" ]; then
   export $(grep -v '^#' .env | xargs)
