@@ -189,12 +189,31 @@ type DailyTokenMetric @entity(immutable: false) {
   deposit: BigInt!
   withdrawal: BigInt!
   settledAmount: BigInt!
+  cumulativeSettledAmount: BigInt! # Running total through end of day
   commissionPaid: BigInt!
 
   # Token utilization
   activeRailsCount: BigInt!
   uniqueHolders: BigInt!
   totalLocked: BigInt!
+}
+
+type WeeklyTokenMetric @entity(immutable: false) {
+  id: Bytes! # token address + week timestamp
+  token: Token!
+  timestamp: BigInt! # Start of week (Sunday 00:00 UTC)
+  week: BigInt! # Week number
+  # Token-specific volume
+  volume: BigInt!
+  deposit: BigInt!
+  withdrawal: BigInt!
+  settledAmount: BigInt! # Delta for this week
+  cumulativeSettledAmount: BigInt! # Running total through end of week
+  commissionPaid: BigInt!
+
+  # Token utilization
+  activeRailsCount: BigInt!
+  uniqueHolders: BigInt!
 }
 
 type DailyOperatorMetric @entity(immutable: false) {
