@@ -1141,7 +1141,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
         }
     }
 
-    /// @notice Settles payments for a terminated rail without validation. This may only be called by the payee and after the terminated rail's max settlement epoch has passed. It's an escape-hatch to unblock payments in an otherwise stuck rail (e.g., due to a buggy validator contract) and it always pays in full.
+    /// @notice Settles payments for a terminated rail without validation. This may only be called by the payer and after the terminated rail's max settlement epoch has passed. It's an escape-hatch to unblock payments in an otherwise stuck rail (e.g., due to a buggy validator contract) and it always pays in full.
     /// @param railId The ID of the rail to settle.
     /// @return totalSettledAmount The total amount settled and transferred.
     /// @return totalNetPayeeAmount The net amount credited to the payee after fees.
