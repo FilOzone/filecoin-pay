@@ -39,7 +39,6 @@ library RateChangeQueue {
         }
     }
 
-
     function peek(Queue storage queue) internal view returns (RateChange memory change) {
         require(queue.head < queue.changes.length, EmptyQueue());
         unchecked {
