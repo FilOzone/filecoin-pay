@@ -25,19 +25,20 @@ library RateChangeQueue {
         require(queue.head < c.length, EmptyQueue());
         unchecked {
             change = c[queue.head];
-            delete c[queue.head];
-        }
-
-        if (queue.head + 1 == c.length) {
-            queue.head = 0;
-            // The array is already empty, waste no time zeroing it.
-            assembly {
-                sstore(c.slot, 0)
-            }
-        } else {
-            queue.head++;
+            delete c[queue.head++];
         }
     }
+
+    // Clears the storage of the Queue
+    // If the queue isEmpty, all queue storage will be cleared
+    function clearEmpty(Queue storage queue) internal {
+        queue.head = 0;
+        RateChange[] storage c = queue.changes;
+        assembly ("memory-safe") {
+            sstore(c.slot, 0)
+        }
+    }
+
 
     function peek(Queue storage queue) internal view returns (RateChange memory change) {
         require(queue.head < queue.changes.length, EmptyQueue());

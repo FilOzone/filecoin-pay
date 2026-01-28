@@ -119,7 +119,9 @@ contract RateChangeQueueTest is Test {
         assertEq(RateChangeQueue.size(queue()), 0);
 
         // Empty queue should have reset to head = 0
+        queue().clearEmpty();
         assertEq(queue().head, 0);
+        assertEq(queue().changes.length, 0);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
