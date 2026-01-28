@@ -1463,12 +1463,10 @@ contract FilecoinPayV1 is ReentrancyGuard {
             Errors.InsufficientFundsForSettlement(rail.token, rail.from, grossSettledAmount, payer.funds)
         );
 
-        // Calculate required lockup based on actual settled duration
         uint256 actualSettledDuration = settledUntilEpoch - epochStart;
         uint256 requiredLockup = rate * actualSettledDuration;
 
         // Verify payer has sufficient lockup for the settlement
-        // We check against requiredLockup (not grossSettledAmount) because that's what we subtract from lockupCurrent
         require(
             payer.lockupCurrent >= requiredLockup,
             Errors.InsufficientLockupForSettlement(rail.token, rail.from, payer.lockupCurrent, requiredLockup)
