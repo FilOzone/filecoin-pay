@@ -31,6 +31,7 @@ library RateChangeQueue {
 
     // Clears the storage of the Queue
     // If the queue isEmpty, all queue storage will be cleared
+    // Otherwise, the queue is functionally emptied but pending RateChange are not cleared from storage
     function clearEmpty(Queue storage queue) internal {
         queue.head = 0;
         RateChange[] storage c = queue.changes;
