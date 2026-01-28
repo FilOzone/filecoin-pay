@@ -15,6 +15,8 @@ This document exists as a supplement to the very thorough and useful README. The
 	- [Rail Changes](#rail-changes)
     - [Validation](#validation)	
 - [Rail Termination](#rail-termination)
+- [Transaction Fees](#transaction-fees)
+	- [Native Token Auction](#native-token-auction)
 
 
 
@@ -269,5 +271,20 @@ With this account settlement no longer flows funds into the `lockupCurrent` of t
 Rails become finalized when settled at or beyond their end epoch.  Finalization refunds the unused fixed lockup back to the payer and releases the `lockupUsage` from any remaining fixed lockup and all of the recently paid streaming lockup.
 
 
+# Transaction Fees
 
+The payments contract is a service that charges a fee for its usage.  It deducts a network fee of 0.5% on all transactions settled over payment rails. Additionally the parameter `commissionRateBps` in `createRail` allows the rail operator contract to set an additional fee over payment transactions.  
 
+Payment of the operator's commission fee is simple.  When creating the rail a `serviceFeeRecipient` is specified and stored on the rail struct.  This address's account is credited the commission fee during all transactions.
+
+The network fee is more difficult because the intention is the pay the L1 protocol, i.e. the Filecoin network.  This can be done by burning native tokens.  However rails operate over not just the native token but also arbitrary ERC20.  So to burn native tokens we must exchange them for the rail's native currency.  To do this we run a public auction for native tokens.
+
+## Native Token Auction
+
+The native token auction is a descending price (Dutch) auction implemented in [`src/Dutch.sol`](../src/Dutch.sol). Prices are halved every 3.5 days.  Bidders can claim tokens via a function `burnForFees` that burns the provided native tokens in exchange for collecting the accumulated fee tokens.  `burnForFees` succeeds when the provided native tokens meet or exceed the existing auction price.
+
+Concretely fee tokens are deducted from the rail during settlement operations and placed in the payment contract's own account, i.e. at `accounts[token][address(this)]`.  There is additionally a mapping in the top level contract state tracking the starting price and time for each token auction.  Starting parameters are set the first time a particular token is charged as a transaction fee during rail settlement, and again each time a bid successfully clears.
+
+When resetting price after a successful bid price is reset by 4x the clearing price.  With a halving time of 3.5 days this leads to on average an auction every week.
+
+The auction does not require precise clearing. Bidders may request fewer tokens than the available balance and the remainder simply recycles into the next auction. Similarly, if the price decays between when a bidder signs their transaction and when it executes, any excess FIL paid is burned. These imprecisions favor the protocol rather than arbitrageurs.
