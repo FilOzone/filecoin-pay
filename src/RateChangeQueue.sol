@@ -37,8 +37,6 @@ library RateChangeQueue {
         } else {
             queue.head++;
         }
-
-        return change;
     }
 
     function peek(Queue storage queue) internal view returns (RateChange memory change) {
