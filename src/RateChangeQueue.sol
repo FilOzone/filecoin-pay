@@ -2,6 +2,8 @@
 pragma solidity ^0.8.27;
 
 library RateChangeQueue {
+    error EmptyQueue();
+
     struct RateChange {
         // The payment rate to apply
         uint256 rate;
@@ -18,13 +20,15 @@ library RateChangeQueue {
         queue.changes.push(RateChange(rate, untilEpoch));
     }
 
-    function dequeue(Queue storage queue) internal returns (RateChange memory) {
+    function dequeue(Queue storage queue) internal returns (RateChange memory change) {
         RateChange[] storage c = queue.changes;
-        require(queue.head < c.length, "Queue is empty");
-        RateChange memory change = c[queue.head];
-        delete c[queue.head];
+        require(queue.head < c.length, EmptyQueue());
+        unchecked {
+            change = c[queue.head];
+            delete c[queue.head];
+        }
 
-        if (isEmpty(queue)) {
+        if (queue.head + 1 == c.length) {
             queue.head = 0;
             // The array is already empty, waste no time zeroing it.
             assembly {
@@ -37,14 +41,18 @@ library RateChangeQueue {
         return change;
     }
 
-    function peek(Queue storage queue) internal view returns (RateChange memory) {
-        require(queue.head < queue.changes.length, "Queue is empty");
-        return queue.changes[queue.head];
+    function peek(Queue storage queue) internal view returns (RateChange memory change) {
+        require(queue.head < queue.changes.length, EmptyQueue());
+        unchecked {
+            change = queue.changes[queue.head];
+        }
     }
 
-    function peekTail(Queue storage queue) internal view returns (RateChange memory) {
-        require(queue.head < queue.changes.length, "Queue is empty");
-        return queue.changes[queue.changes.length - 1];
+    function peekTail(Queue storage queue) internal view returns (RateChange memory change) {
+        require(queue.head < queue.changes.length, EmptyQueue());
+        unchecked {
+            change = queue.changes[queue.changes.length - 1];
+        }
     }
 
     function isEmpty(Queue storage queue) internal view returns (bool) {

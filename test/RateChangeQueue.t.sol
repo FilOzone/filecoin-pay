@@ -117,6 +117,9 @@ contract RateChangeQueueTest is Test {
         // Queue should now be empty
         assertTrue(RateChangeQueue.isEmpty(queue()));
         assertEq(RateChangeQueue.size(queue()), 0);
+
+        // Empty queue should have reset to head = 0
+        assertEq(queue().head, 0);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -124,7 +127,7 @@ contract RateChangeQueueTest is Test {
         createEmptyQueue();
 
         // Test dequeue on empty queue
-        vm.expectRevert("Queue is empty");
+        vm.expectRevert(abi.encodeWithSelector(RateChangeQueue.EmptyQueue.selector));
         RateChangeQueue.dequeue(queue());
     }
 
@@ -133,7 +136,7 @@ contract RateChangeQueueTest is Test {
         createEmptyQueue();
 
         // Test peek on empty queue
-        vm.expectRevert("Queue is empty");
+        vm.expectRevert(abi.encodeWithSelector(RateChangeQueue.EmptyQueue.selector));
         RateChangeQueue.peek(queue());
     }
 
@@ -142,7 +145,7 @@ contract RateChangeQueueTest is Test {
         createEmptyQueue();
 
         // Test peekTail on empty queue
-        vm.expectRevert("Queue is empty");
+        vm.expectRevert(abi.encodeWithSelector(RateChangeQueue.EmptyQueue.selector));
         RateChangeQueue.peekTail(queue());
     }
 
