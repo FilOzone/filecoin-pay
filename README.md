@@ -3,6 +3,7 @@
 The Filecoin Pay V1 contract enables ERC20 token payment flows through "rails" - automated payment channels between payers and recipients. The contract supports continuous rate based payments, one-time transfers, and payment validation during settlement.
 
 - [Deployment Info](#deployment-info)
+- [Security Audits](#security-audits)
 - [Key Concepts](#key-concepts)
   - [Account](#account)
   - [Rail](#rail)
@@ -33,6 +34,8 @@ The Filecoin Pay V1 contract enables ERC20 token payment flows through "rails" -
   - [Rail Termination (by operator)](#rail-termination-by-operator)
   - [Rail Settlement Without Validation](#rail-settlement-without-validation)
   - [Payer Reducing Operator Allowance After Deal Proposal](#payer-reducing-operator-allowance-after-deal-proposal)
+- [Known Issues](#known-issues)
+  - [Operator Lockup Usage Leak on Terminated Rails (#274)](#operator-lockup-usage-leak-on-terminated-rails-274)
 - [Contributing](#contributing)
   - [Before Contributing](#before-contributing)
   - [Pull Request Guidelines](#pull-request-guidelines)
@@ -982,6 +985,23 @@ payments.modifyRailPayment(
 
 - Unless absolutely required, payers should refrain from cutting operator allowances for ongoing transactions.
 - In the event that the rate stream cannot be initiated, operators should be prepared for this possibility and utilize one-time payments as a backup.
+
+## Known Issues
+
+### Operator Lockup Usage Leak on Terminated Rails ([#274](https://github.com/FilOzone/filecoin-pay/issues/274))
+
+When an operator reduces a rail's payment rate during the grace period of a terminated rail (between termination and finalization), the operator's `lockupUsage` tracking can become incorrect. A small amount of "phantom" lockup usage may remain on the operator approval after the rail is finalized.
+
+**Trigger conditions:**
+- Rail is terminated (setting an `endEpoch`)
+- Operator reduces the payment rate during the grace period
+- Rail is then settled and finalized
+
+**Impact:** The leaked amount is `(oldRate - newRate) × (epochs elapsed since termination)`. This reduces the operator's effective `lockupAllowance` for future rails. The leak accumulates if this pattern is repeated across multiple rails.
+
+**Mitigation:** Set operator allowances with generous headroom beyond the minimum required. The leaked amount per rail is small relative to typical allowances. If phantom usage accumulates and blocks new rails, the payer can call `increaseOperatorApproval` to add more headroom.
+
+**Status:** This bug will be fixed in a future release of Filecoin Pay. However, the current v1 contract is deployed and non-upgradeable, so the fix will require deploying a new contract version. Service contracts targeting FilecoinPayV1 will continue to observe this behavior until they migrate to a newer Filecoin Pay deployment.
 
 ## Contributing
 
