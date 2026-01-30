@@ -1,24 +1,35 @@
-
-# Payments Contract In Depth Implementation SPEC 
+# FilecoinPay Implementation Specification
 
 This document exists as a supplement to the very thorough and useful README. The README covers essentially everything you need to know as a user of the payments contract. This document exists for very advanced users and implementers to cover the internal workings of the contract in depth. You should understand the README first before reading this document.
 
+- [Versioning Note](#versioning-note)
 - [Skeleton Keys for Understanding](#skeleton-keys-for-understanding)
-	- [Three Core Datastructures](#three-core-data-structures)
+	- [Three Core Data Structures](#three-core-data-structures)
 	- [The Fundamental Flow of Funds](#the-fundamental-flow-of-funds)
 	- [Mixing of Buckets](#mixing-of-buckets)
-	- [Invariants Enforced Eagerly](#invariants-are-enforced-eagerly)
+	- [Invariants are Enforced Eagerly](#invariants-are-enforced-eagerly)
 - [Operator Approval](#operator-approval)
 - [Accounts and Account Settlement](#accounts-and-account-settlement)
 - [Rails and Rail Settlement](#rails-and-rail-settlement)
+	- [Terminated Rail Settlement](#terminated-rail-settlement)
+	- [Validation](#validation)
 	- [One Time Payments](#one-time-payments)
 	- [Rail Changes](#rail-changes)
-    - [Validation](#validation)	
 - [Rail Termination](#rail-termination)
 - [Transaction Fees](#transaction-fees)
 	- [Native Token Auction](#native-token-auction)
 
+## Versioning Note
 
+This specification documents **FilecoinPayV1** behavior as deployed on mainnet. The v1 contract is non-upgradeable, so any fixes require deploying a new contract version.
+
+Two v1 behaviors are documented here that will change in future releases:
+
+- **Operator lockupUsage leak on terminated rails** ([#274](https://github.com/FilOzone/filecoin-pay/issues/274)): When an operator reduces a rail's rate during the grace period, phantom `lockupUsage` can remain after finalization. See the [Rail Termination](#rail-termination) section for details.
+
+- **Validator note accumulation** ([#268](https://github.com/FilOzone/filecoin-pay/issues/268)): When settling multiple rate change segments, each segment's validator note overwrites the previous. Only the final segment's note is returned from `settleRail()`. Future versions will accumulate notes across segments.
+
+Service contracts targeting FilecoinPayV1 will observe these behaviors until they migrate to a newer Filecoin Pay deployment.-Versioning Note](#versioning-note)
 
 ## Skeleton Keys for Understanding 
 
@@ -196,7 +207,7 @@ Settlement is further complicated because the settlement period can vary. Rails 
 
 Each segment of the rate change queue is pushed once and popped once. Rail settlment reads every segment up to the `untilEpoch` and processes them.  Rail settlment may not empty the queue in the case that the `untilEpoch` is in the past.  Logic in `_settleWithRateChanges` handles edge cases like partially settled segments and zero rate segments.
 
-As part of its logic `_settleSegment` checks the rail's `validator` address.  If it is nonzero then the validator contract is consulted for modifying the payment.  Validator's can modify the rail settlement amount adn the final `untilEpoch`.  For background on the purpose of rail validation please see the README. For more about validation see [the section below](#validation). 
+As part of its logic `_settleSegment` checks the rail's `validator` address.  If it is nonzero then the validator contract is consulted for modifying the payment.  Validators can modify the rail settlement amount and the final `untilEpoch`.  For background on the purpose of rail validation please see the README. For more about validation see [the section below](#validation).
 
 ### Terminated Rail Settlement
 
@@ -233,6 +244,8 @@ interface IValidator {
 
 The parameters encode a settlement segment and the result allows the validator to change the total amount settled and the epoch up to which settlement takes place.  A few sanity checks constrain the `ValidationResult`. The validator can't authorize more payment than would flow through the rail without validation or settle the rail up to an epoch beyond the provided `toEpoch`.  The zero address is an allowed validator.
 
+**Note return behavior**: When settling across multiple rate change segments, the validator is called once per segment and each returns a `ValidationResult`. However, `settleRail()` only returns the note from the final segment—earlier notes are overwritten. In practice, non-empty notes indicate error conditions, so this rarely affects callers.
+
 Note that when the validator withholds some of the funds from being paid out the rail settlement code still unlocks those funds from the `lockupCurrent` bucket in the payer account.  Essentially the validator flows those funds back to the payer account's available balance.
 
 The one exception when rails can be settled without validation is in the post termination failsafe `settleTerminatedRailWithoutValidation` which exists to protect against buggy validators stopping all payments between parties.  This method calls `_settleSegment` with no validation and hence pays in full.
@@ -259,7 +272,6 @@ For all three changes the operator approval must be consulted to check that the 
 
 All rail modifications including rail creation must be called by the operator.
 
-
 ## Rail Termination
 
 If you've read this far you've seen several implications of termination on rail modification, settlement, and allowance accounting.  By now it is not too surprising to hear that terminated and not yet finalized rails are not so much an edge case as a distinct third type of payment process alongside one time payments and live rails. 
@@ -270,8 +282,9 @@ With this account settlement no longer flows funds into the `lockupCurrent` of t
 
 Rails become finalized when settled at or beyond their end epoch.  Finalization refunds the unused fixed lockup back to the payer and releases the `lockupUsage` from any remaining fixed lockup and all of the recently paid streaming lockup.
 
+**Important caveat on lockupUsage calculation during finalization**: Finalization assumes that `lockupUsage` for streaming lockup equals `rail.paymentRate × rail.lockupPeriod`. This assumption holds for rails whose rate was never modified after termination. However, if the operator reduces the rate during the grace period (permitted on terminated rails), a mismatch can occur because `modifyRailPayment` adjusts `lockupUsage` using the remaining epochs (`effectiveLockupPeriod`) while finalization uses the full `lockupPeriod` with the final rate. This can leave phantom `lockupUsage` on the operator approval that is never released. See [issue #274](https://github.com/FilOzone/filecoin-pay/issues/274) for details. Setting allowances with generous headroom mitigates this.
 
-# Transaction Fees
+## Transaction Fees
 
 The payments contract is a service that charges a fee for its usage.  It deducts a network fee of 0.5% on all transactions settled over payment rails. Additionally the parameter `commissionRateBps` in `createRail` allows the rail operator contract to set an additional fee over payment transactions.  
 
@@ -279,7 +292,7 @@ Payment of the operator's commission fee is simple.  When creating the rail a `s
 
 The network fee is more difficult because the intention is the pay the L1 protocol, i.e. the Filecoin network.  This can be done by burning native tokens.  However rails operate over not just the native token but also arbitrary ERC20.  So to burn native tokens we must exchange them for the rail's native currency.  To do this we run a public auction for native tokens.
 
-## Native Token Auction
+### Native Token Auction
 
 The native token auction is a descending price (Dutch) auction implemented in [`src/Dutch.sol`](../src/Dutch.sol). Prices are halved every 3.5 days.  Bidders can claim tokens via a function `burnForFees` that burns the provided native tokens in exchange for collecting the accumulated fee tokens.  `burnForFees` succeeds when the provided native tokens meet or exceed the existing auction price.
 
