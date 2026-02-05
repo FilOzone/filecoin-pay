@@ -226,8 +226,13 @@ contract RailSettlementTest is Test, BaseTestHelper {
         RailSettlementHelpers.SettlementResult memory result =
             settlementHelper.settleRailAndVerify(railId, block.number, expectedAmount, block.number);
 
-        // Verify validator note
-        assertEq(result.note, "Standard approved payment", "Validator note should match");
+        // Verify validator notes are accumulated from all 9 segments
+        // (8 rate changes in the queue + 1 final segment)
+        string memory expectedNote = "Standard approved payment";
+        for (uint256 i = 1; i < 9; i++) {
+            expectedNote = string.concat(expectedNote, "; Standard approved payment");
+        }
+        assertEq(result.note, expectedNote, "Validator notes should be accumulated");
     }
 
     function testValidationWithReducedAmount() public {
