@@ -50,6 +50,7 @@ Check the latest deployed contracts in [CHANGELOG.md](./CHANGELOG.md)
 
 The Filecoin-Pay contracts have undergone the following security audits:
 - [Zellic Security Audit (August 2025)](https://github.com/Zellic/publications/blob/master/Filecoin%20Services%20Payments%20-%20Zellic%20Audit%20Report.pdf)
+- [Composable Security Audit (January 2026)](./audits/Security_Review_Retest_Report_Filecoin_FilecoinPay.pdf)
 
 ## Key Concepts
 
