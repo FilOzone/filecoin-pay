@@ -1596,6 +1596,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
         rail.settledUpTo = 0;
         rail.endEpoch = 0;
         rail.commissionRateBps = 0;
+        rail.rateChangeQueue.clearEmpty();
     }
 
     function updateOperatorRateUsage(OperatorApproval storage approval, uint256 oldRate, uint256 newRate) internal {
