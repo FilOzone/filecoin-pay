@@ -1361,7 +1361,15 @@ contract FilecoinPayV1 is ReentrancyGuard {
 
             // Add the gross settled amount to our running total
             totalGrossSettled += segmentGrossSettled;
-            note = validationNote;
+
+            // Accumulate validation notes from each segment
+            if (bytes(validationNote).length > 0) {
+                if (bytes(note).length > 0) {
+                    note = string.concat(note, "; ", validationNote);
+                } else {
+                    note = validationNote;
+                }
+            }
 
             // If validator partially settled the segment, exit early
             if (rail.settledUpTo < segmentEndBoundary) {
