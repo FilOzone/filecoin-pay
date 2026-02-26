@@ -1463,13 +1463,14 @@ contract FilecoinPayV1 is ReentrancyGuard {
             Errors.InsufficientFundsForSettlement(rail.token, rail.from, grossSettledAmount, payer.funds)
         );
 
-        // Verify payer has sufficient lockup for the settlement
-        require(
-            payer.lockupCurrent >= grossSettledAmount,
-            Errors.InsufficientLockupForSettlement(rail.token, rail.from, payer.lockupCurrent, grossSettledAmount)
-        );
         uint256 actualSettledDuration = settledUntilEpoch - epochStart;
         uint256 requiredLockup = rate * actualSettledDuration;
+
+        // Verify payer has sufficient lockup for the settlement
+        require(
+            payer.lockupCurrent >= requiredLockup,
+            Errors.InsufficientLockupForSettlement(rail.token, rail.from, payer.lockupCurrent, requiredLockup)
+        );
 
         // Transfer funds from payer (always pays full settled amount)
         payer.funds -= grossSettledAmount;
