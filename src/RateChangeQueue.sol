@@ -23,16 +23,7 @@ library RateChangeQueue {
         require(queue.head < c.length, "Queue is empty");
         RateChange memory change = c[queue.head];
         delete c[queue.head];
-
-        if (isEmpty(queue)) {
-            queue.head = 0;
-            // The array is already empty, waste no time zeroing it.
-            assembly {
-                sstore(c.slot, 0)
-            }
-        } else {
-            queue.head++;
-        }
+        queue.head++;
 
         return change;
     }
