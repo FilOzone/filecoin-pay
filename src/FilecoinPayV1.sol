@@ -210,7 +210,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
     }
 
     modifier validateRailActive(uint256 railId) {
-        require(rails[railId].from != address(0), Errors.RailInactiveOrSettled(railId));
+        _validateRailActive(railId);
         _;
     }
 
@@ -220,9 +220,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
     }
 
     modifier onlyRailOperator(uint256 railId) {
-        require(
-            rails[railId].operator == msg.sender, Errors.OnlyRailOperatorAllowed(rails[railId].operator, msg.sender)
-        );
+        _onlyRailOperator(railId);
         _;
     }
 
@@ -232,17 +230,17 @@ contract FilecoinPayV1 is ReentrancyGuard {
     }
 
     modifier validateRailTerminated(uint256 railId) {
-        require(isRailTerminated(rails[railId], railId), Errors.RailNotTerminated(railId));
+        _validateRailTerminated(railId);
         _;
     }
 
     modifier validateNonZeroAddress(address addr, string memory varName) {
-        require(addr != address(0), Errors.ZeroAddressNotAllowed(varName));
+        _validateNonZeroAddress(addr, varName);
         _;
     }
 
     modifier validateSignerIsRecipient(address to) {
-        require(to == msg.sender, Errors.SignerMustBeMsgSender(msg.sender, to));
+        _validateSignerIsRecipient(to);
         _;
     }
 
@@ -1572,6 +1570,28 @@ contract FilecoinPayV1 is ReentrancyGuard {
     function isRailTerminated(Rail storage rail, uint256 railId) internal view returns (bool) {
         require(rail.from != address(0), Errors.RailInactiveOrSettled(railId));
         return rail.endEpoch > 0;
+    }
+
+    function _validateRailActive(uint256 railId) internal view {
+        require(rails[railId].from != address(0), Errors.RailInactiveOrSettled(railId));
+    }
+
+    function _onlyRailOperator(uint256 railId) internal view {
+        require(
+            rails[railId].operator == msg.sender, Errors.OnlyRailOperatorAllowed(rails[railId].operator, msg.sender)
+        );
+    }
+
+    function _validateRailTerminated(uint256 railId) internal view {
+        require(isRailTerminated(rails[railId], railId), Errors.RailNotTerminated(railId));
+    }
+
+    function _validateNonZeroAddress(address addr, string memory varName) internal pure {
+        require(addr != address(0), Errors.ZeroAddressNotAllowed(varName));
+    }
+
+    function _validateSignerIsRecipient(address to) internal view {
+        require(to == msg.sender, Errors.SignerMustBeMsgSender(msg.sender, to));
     }
 
     // Get the final settlement epoch for a terminated rail
