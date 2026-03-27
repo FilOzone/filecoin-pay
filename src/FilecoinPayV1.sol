@@ -1577,9 +1577,10 @@ contract FilecoinPayV1 is ReentrancyGuard {
     }
 
     function _onlyRailOperator(uint256 railId) internal view {
-        require(
-            rails[railId].operator == msg.sender, Errors.OnlyRailOperatorAllowed(rails[railId].operator, msg.sender)
-        );
+        address operator = rails[railId].operator;
+        if (operator != msg.sender) {
+            revert Errors.OnlyRailOperatorAllowed(operator, msg.sender);
+        }
     }
 
     function _validateRailTerminated(uint256 railId) internal view {
