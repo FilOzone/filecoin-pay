@@ -924,6 +924,8 @@ If some component in the system (operator, validator, payer, payee) misbehaves, 
 
 At any time, the payer can reduce the operator's allowance (e.g., to zero) and / or change whether or not the operator is allowed to create new rails. Such modifications won't affect existing rails, although the operator will not be able to increase the payment rates on any rails they manage until they're back under their limits.
 
+**Important:** Setting `approved` to `false` via `setOperatorApproval` only blocks the operator from creating **new** rails. On existing rails they can still adjust rates and lockup, terminate, and make one-time payments from fixed lockup. To fully restrict a revoked operator, also zero their `rateAllowance` and `lockupAllowance`.
+
 ### Rail Termination (by payer)
 
 If something goes wrong (e.g., the operator is buggy and is refusing to terminate deals or stop payments), the payer may terminate the rail to prevent future payment obligations beyond the guaranteed lockup period.
@@ -953,6 +955,8 @@ If a validator contract is malfunctioning, the _payer_ may forcibly settle the r
 // Emergency settlement for terminated rails with stuck validation
 (uint256 amount, uint256 settledEpoch, string memory note) = payments.settleTerminatedRailWithoutValidation(railId);
 ```
+
+**Limitation:** This escape hatch requires the rail to be terminated first, so a validator that reverts in its `railTerminated()` callback blocks `terminateRail()`, makes the hatch unreachable, and can permanently trap payer funds. Service contracts implementing `IValidator` must ensure `railTerminated()` never reverts. (FWSS, the production validator, does not.)
 
 ### Payer Reducing Operator Allowance After Deal Proposal
 
@@ -998,7 +1002,7 @@ When an operator reduces a rail's payment rate during the grace period of a term
 - Operator reduces the payment rate during the grace period
 - Rail is then settled and finalized
 
-**Impact:** The leaked amount is `(oldRate - newRate) × (epochs elapsed since termination)`. This reduces the operator's effective `lockupAllowance` for future rails. The leak accumulates if this pattern is repeated across multiple rails.
+**Impact:** The leaked amount per rate reduction is `(oldRate - newRate) × (lockupPeriod - remainingEpochs)`, where `remainingEpochs` is the unsettled epochs left in the grace period when the rate is reduced. This reduces the operator's effective `lockupAllowance` for future rails and accumulates across repeated reductions; in the worst case it can block the operator from creating new rails even after all old rails are finalized.
 
 **Mitigation:** Set operator allowances with generous headroom beyond the minimum required. The leaked amount per rail is small relative to typical allowances. If phantom usage accumulates and blocks new rails, the payer can call `increaseOperatorApproval` to add more headroom.
 
