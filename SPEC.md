@@ -1,6 +1,6 @@
 # FilecoinPay Implementation Specification
 
-This document exists as a supplement to the very thorough and useful README. The README covers essentially everything you need to know as a user of the payments contract. This document exists for very advanced users and implementers to cover the internal workings of the contract in depth. You should understand the README first before reading this document.
+This document exists as a supplement to the user-facing documentation (the [README](README.md) and the [`docs/`](docs/) guides). That documentation covers essentially everything you need to know as a user of the payments contract. This document exists for very advanced users and implementers to cover the internal workings of the contract in depth. You should understand the user documentation first before reading this document.
 
 - [Versioning Note](#versioning-note)
 - [Skeleton Keys for Understanding](#skeleton-keys-for-understanding)
