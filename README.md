@@ -8,6 +8,7 @@ The Filecoin Pay V1 contract enables ERC20 token payment flows through "rails" -
 | --- | --- |
 | Understand the model: accounts, rails, lockup, validators, operators | [Concepts](./docs/concepts.md) |
 | Build a service contract or integrate as an operator: function reference, worked example, escape hatches | [Integration Guide](./docs/integration.md) |
+| Monitor solvency and rail health from a dashboard or SDK: paid-until, runway, termination windows | [Monitoring](./docs/monitoring.md) |
 | Dig into contract internals: settlement, rate-change segments, invariants, fees | [SPEC.md](./SPEC.md) |
 | Find deployed contract addresses | [CHANGELOG.md](./CHANGELOG.md) |
 
