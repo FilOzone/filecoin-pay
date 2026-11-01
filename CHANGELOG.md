@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file. The format 
 ### Changed
 
 ### Fixed
+- Fixed incorrect parameter order in `LockupRateLessThanOldRate`, `CannotSettleFutureEpochs`, `InsufficientFundsForSettlement`, and `InsufficientNativeTokenForBurn` error reverts (audit L07) ([#284](https://github.com/FilOzone/filecoin-pay/issues/284))
 
 ## [1.0.0] - M4: Filecoin Service Liftoff
 

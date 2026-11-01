@@ -1034,7 +1034,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
         if (!isTerminated) {
             require(
                 payer.lockupRate >= oldRate,
-                Errors.LockupRateLessThanOldRate(railId, rail.from, oldRate, payer.lockupRate)
+                Errors.LockupRateLessThanOldRate(railId, rail.from, payer.lockupRate, oldRate)
             );
             payer.lockupRate = payer.lockupRate - oldRate + newRate;
             updateOperatorRateUsage(operatorApproval, oldRate, newRate);
@@ -1210,7 +1210,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
             string memory note
         )
     {
-        require(untilEpoch <= block.number, Errors.CannotSettleFutureEpochs(railId, untilEpoch, block.number));
+        require(untilEpoch <= block.number, Errors.CannotSettleFutureEpochs(railId, block.number, untilEpoch));
 
         Rail storage rail = rails[railId];
         Account storage payer = accounts[rail.token][rail.from];
@@ -1466,7 +1466,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
         // Verify payer has sufficient funds for the settlement
         require(
             payer.funds >= grossSettledAmount,
-            Errors.InsufficientFundsForSettlement(rail.token, rail.from, grossSettledAmount, payer.funds)
+            Errors.InsufficientFundsForSettlement(rail.token, rail.from, payer.funds, grossSettledAmount)
         );
 
         uint256 actualSettledDuration = settledUntilEpoch - epochStart;
@@ -1801,7 +1801,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
 
         AuctionInfo storage auction = auctionInfo[token];
         uint256 auctionPrice = uint256(auction.startPrice).decay(block.timestamp - auction.startTime);
-        require(msg.value >= auctionPrice, Errors.InsufficientNativeTokenForBurn(msg.value, auctionPrice));
+        require(msg.value >= auctionPrice, Errors.InsufficientNativeTokenForBurn(auctionPrice, msg.value));
 
         auctionPrice *= Dutch.RESET_FACTOR;
         if (auctionPrice > MAX_AUCTION_START_PRICE) {

@@ -64,6 +64,19 @@ contract RailSettlementTest is Test, BaseTestHelper {
         settlementHelper.settleRailAndVerify(railId, block.number, expectedAmount, block.number);
     }
 
+    function testSettleFutureEpochsReverts() public {
+        uint256 railId =
+            helper.setupRailWithParameters(USER1, USER2, OPERATOR, 5 ether, 10, 0, address(0), SERVICE_FEE_RECIPIENT);
+        helper.advanceBlocks(5);
+
+        uint256 futureEpoch = block.number + 1;
+        vm.prank(USER1);
+        vm.expectRevert(
+            abi.encodeWithSelector(Errors.CannotSettleFutureEpochs.selector, railId, block.number, futureEpoch)
+        );
+        payments.settleRail(railId, futureEpoch);
+    }
+
     function testSettleRailInDebt() public {
         uint256 rate = 50 ether;
         uint256 railId = helper.setupRailWithParameters(

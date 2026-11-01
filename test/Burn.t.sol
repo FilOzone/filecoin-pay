@@ -82,7 +82,7 @@ contract BurnTest is MockFVMTest {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                Errors.InsufficientNativeTokenForBurn.selector, FIRST_AUCTION_START_PRICE - 1, FIRST_AUCTION_START_PRICE
+                Errors.InsufficientNativeTokenForBurn.selector, FIRST_AUCTION_START_PRICE, FIRST_AUCTION_START_PRICE - 1
             )
         );
         payments.burnForFees{value: FIRST_AUCTION_START_PRICE - 1}(testToken, recipient, available);
@@ -134,7 +134,7 @@ contract BurnTest is MockFVMTest {
         payments.burnForFees{value: expectedPrice}(testToken, recipient, available + 1);
 
         vm.expectRevert(
-            abi.encodeWithSelector(Errors.InsufficientNativeTokenForBurn.selector, expectedPrice - 1, expectedPrice)
+            abi.encodeWithSelector(Errors.InsufficientNativeTokenForBurn.selector, expectedPrice, expectedPrice - 1)
         );
         payments.burnForFees{value: expectedPrice - 1}(testToken, recipient, available);
 
