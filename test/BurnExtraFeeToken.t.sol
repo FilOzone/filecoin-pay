@@ -63,19 +63,42 @@ contract BurnFeeOnTransferTokenTest is MockFVMTest {
         (uint256 available,,,) = payments.accounts(feeToken, address(payments));
         assertEq(available, 10 * newRate * payments.NETWORK_FEE_NUMERATOR() / payments.NETWORK_FEE_DENOMINATOR());
 
-        vm.expectRevert();
+        uint256 contractBalanceBefore = feeToken.balanceOf(address(payments));
+        uint256 burnedBefore = BURN_ADDRESS.balance;
+
+        // The contract holds enough tokens, but the sender-paid fee would consume user funds.
+        // The actual debit exceeds the fee account, so checked subtraction must revert.
+        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         payments.burnForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, available);
 
         uint256 requested = available - feeToken.transferFee();
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         payments.burnForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, requested + 1);
+
+        // Both failed purchases roll back the token transfer and FIL burn.
+        assertEq(feeToken.balanceOf(address(payments)), contractBalanceBefore);
+        assertEq(feeToken.balanceOf(recipient), 0);
+        assertEq(BURN_ADDRESS.balance, burnedBefore);
+        (uint256 availableAfterFailure,,,) = payments.accounts(feeToken, address(payments));
+        assertEq(availableAfterFailure, available);
 
         payments.burnForFees{value: FIRST_AUCTION_START_PRICE}(feeToken, recipient, requested);
         uint256 received = feeToken.balanceOf(recipient);
         assertEq(requested, received);
 
+        // The recipient gets requested, but the contract loses requested + transferFee.
+        // Charging only requested would leave an unbacked fee balance of transferFee.
+        uint256 actualDebit = contractBalanceBefore - feeToken.balanceOf(address(payments));
+        assertEq(actualDebit, requested + feeToken.transferFee());
+        assertEq(actualDebit, available);
+
         (uint256 availableAfter,,,) = payments.accounts(feeToken, address(payments));
         assertEq(availableAfter, 0);
+
+        // All remaining tokens still back the payer and payee, not the depleted fee account.
+        (uint256 payerFunds,,,) = payments.accounts(feeToken, payer);
+        (uint256 payeeFunds,,,) = payments.accounts(feeToken, payee);
+        assertEq(feeToken.balanceOf(address(payments)), payerFunds + payeeFunds);
 
         assertEq(BURN_ADDRESS.balance, FIRST_AUCTION_START_PRICE);
     }

@@ -787,7 +787,9 @@ contract FilecoinPayV1 is ReentrancyGuard {
     }
 
     function transferOut(IERC20 token, address to, uint256 amount) internal returns (uint256 actual) {
-        // handle fee-on-transfer and hidden-denominator tokens
+        // Measure the contract's actual debit, not the requested amount or recipient's credit.
+        // Sender-paid transfer fees or hidden-denominator rounding can make these differ.
+        // Callers charge this delta to the source account so other accounts do not subsidize it.
         uint256 balanceBefore = token.balanceOf(address(this));
         token.safeTransfer(to, amount);
         uint256 balanceAfter = token.balanceOf(address(this));
@@ -1792,7 +1794,7 @@ contract FilecoinPayV1 is ReentrancyGuard {
      * @notice Burn FIL to buy the network fees
      * @param token Which kind of fees to buy
      * @param recipient Receives the purchased fees
-     * @param requested Exact amount of fees transferred
+     * @param requested Amount passed to the token transfer; the recipient may receive less for fee-on-transfer tokens.
      */
     function burnForFees(IERC20 token, address recipient, uint256 requested) external payable nonReentrant {
         Account storage fees = accounts[token][address(this)];
@@ -1813,6 +1815,8 @@ contract FilecoinPayV1 is ReentrancyGuard {
         require(FVMPay.burn(msg.value), Errors.NativeTransferFailed(BURN_ADDRESS, msg.value));
 
         uint256 actual = transferOut(token, recipient, requested);
+        // Charge the actual debit, including any sender-paid token fee. Checked subtraction
+        // reverts the entire purchase if it would spend tokens backing other accounts.
         fees.funds = available - actual;
     }
 }
